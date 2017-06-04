@@ -90,7 +90,7 @@ function create() {
     socket.on('player_disconnect', function(id) {
         if (id in players) {
             players[id].player.kill();
-            players[id].weapon.kill();
+            delete players[id];
         }
     });
 }
