@@ -1,13 +1,13 @@
 package main
 
 import (
-	"net/http"
-	"log"
+	"encoding/json"
 	"github.com/GeertJohan/go.rice"
 	"github.com/googollee/go-socket.io"
-	"encoding/json"
-	"sync"
+	"log"
 	"math/rand"
+	"net/http"
+	"sync"
 )
 
 type Zoo struct {
@@ -16,23 +16,23 @@ type Zoo struct {
 }
 
 type Bunny struct {
-	Id string `json:"id"`
-	X uint32 `json:"x"`
-	Y uint32 `json:"y"`
-	Name string `json:"name"`
-	Width uint32 `json:"wight"`
-	Height uint32 `json:"height"`
-	IsAlive bool `json:"isAlive"`
+	Id      string `json:"id"`
+	X       uint32 `json:"x"`
+	Y       uint32 `json:"y"`
+	Name    string `json:"name"`
+	Width   uint32 `json:"wight"`
+	Height  uint32 `json:"height"`
+	IsAlive bool   `json:"isAlive"`
 }
 
-func NewBunny(id string) *Bunny{
+func NewBunny(id string) *Bunny {
 	return &Bunny{
-		Id: id,
-		X: uint32(rand.Intn(750)),
-		Y: uint32(rand.Intn(750)),
-		Name: "",
-		Width: 32,
-		Height: 32,
+		Id:      id,
+		X:       uint32(rand.Intn(750)),
+		Y:       uint32(rand.Intn(750)),
+		Name:    "",
+		Width:   32,
+		Height:  32,
 		IsAlive: true,
 	}
 }
@@ -73,7 +73,7 @@ func main() {
 		// ЕСЛИ КРОЛИК ПОВЕРНУЛСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("player_rotation", func(rotation string) {
 			bytes, err = json.Marshal(map[string]string{
-				"id": so.Id(),
+				"id":       so.Id(),
 				"rotation": rotation,
 			})
 			if err != nil {
@@ -100,8 +100,8 @@ func main() {
 
 			bytes, err = json.Marshal(map[string]string{
 				"id": so.Id(),
-				"x": x,
-				"y": y,
+				"x":  x,
+				"y":  y,
 			})
 			if err != nil {
 				log.Println("Error marshal json")
