@@ -67,7 +67,7 @@ function create() {
 
     //ввзываем выстрелы
     socket.on('player_fire_add', function(id) {
-        if (live) {
+        if (live && id in players) {
             players[id].weapon.fire();
         }
     });
@@ -76,13 +76,15 @@ function create() {
     socket.on('clean_dead_player', function(victimId) {
         if (victimId === socket.id) {
             live = false;
-            text = game.add.text(width / 2, height / 2, "You lose!", {font: "32px Arial", fill: "#ffffff", align: "center"});
+            let text = game.add.text(width / 2, height / 2, "You lose!", {font: "32px Arial", fill: "#ffffff", align: "center"});
             text.fixedToCamera = true;
             text.anchor.setTo(.5, .5);
         }
 
         if (victimId in players) {
             players[victimId].player.kill();
+            players[victimId].text.destroy();
+            delete players[victimId];
         }
     });
 
