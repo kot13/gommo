@@ -9,7 +9,7 @@ Now:
 ```
 $ gvt restore
 $ go build
-$ ./rabbitmmo
+$ ./gommo
 ```
 
 ## Embedded build
@@ -22,10 +22,10 @@ Now:
 ```
 $ rice embed-go
 $ go build
-$ ./rabbitmmo
+$ ./gommo
 ```
 
 Or:
 ```
-$ rice embed-go && go build && ./rabbitmmo
+$ rice embed-go && go build && ./gommo
 ```

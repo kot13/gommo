@@ -25,12 +25,12 @@ type Bunny struct {
 	IsAlive bool   `json:"isAlive"`
 }
 
-func NewBunny(id string) *Bunny {
+func NewBunny(id string, playerName string) *Bunny {
 	return &Bunny{
 		Id:      id,
 		X:       uint32(rand.Intn(750)),
 		Y:       uint32(rand.Intn(750)),
-		Name:    "",
+		Name:    playerName,
 		Width:   32,
 		Height:  32,
 		IsAlive: true,
@@ -54,25 +54,27 @@ func main() {
 
 		so.Join("room")
 
-		// СОЗДАЁМ КРОЛИКА
-		bunny := NewBunny(so.Id())
-		zoo.Lock()
-		zoo.m[so.Id()] = bunny
-		zoo.Unlock()
+		so.On("join_new_player", func(playerName string) {
+			// СОЗДАЁМ КРОЛИКА
+			bunny := NewBunny(so.Id(), playerName)
+			zoo.Lock()
+			zoo.m[so.Id()] = bunny
+			zoo.Unlock()
 
-		// ОТПРАВЛЯЕМ ЗООПАРК НА КЛИЕНТА
-		zoo.Lock()
-		bytes, err := json.Marshal(zoo.m)
-		zoo.Unlock()
-		if err != nil {
-			log.Println("Error marshal json")
-		}
-		so.BroadcastTo("room", "add_players", string(bytes))
-		so.Emit("add_players", string(bytes))
+			// ОТПРАВЛЯЕМ ЗООПАРК НА КЛИЕНТА
+			zoo.Lock()
+			bytes, err := json.Marshal(zoo.m)
+			zoo.Unlock()
+			if err != nil {
+				log.Println("Error marshal json")
+			}
+			so.BroadcastTo("room", "add_players", string(bytes))
+			so.Emit("add_players", string(bytes))
+		})
 
 		// ЕСЛИ КРОЛИК ПОВЕРНУЛСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("player_rotation", func(rotation string) {
-			bytes, err = json.Marshal(map[string]string{
+			bytes, err := json.Marshal(map[string]string{
 				"id":       so.Id(),
 				"rotation": rotation,
 			})
@@ -98,7 +100,7 @@ func main() {
 				y = "-5"
 			}
 
-			bytes, err = json.Marshal(map[string]string{
+			bytes, err := json.Marshal(map[string]string{
 				"id": so.Id(),
 				"x":  x,
 				"y":  y,
@@ -133,7 +135,7 @@ func main() {
 			zoo.Lock()
 			delete(zoo.m, so.Id())
 			zoo.Unlock()
-			so.BroadcastTo("room", "player_disconnect", string(bytes))
+			so.BroadcastTo("room", "player_disconnect", so.Id())
 		})
 	})
 

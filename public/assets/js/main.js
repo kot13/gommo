@@ -1,13 +1,13 @@
-let width = window.innerWidth;
-let height = window.innerHeight;
+const width = window.innerWidth;
+const height = window.innerHeight;
+const mapSize = 2000;
 
-let game = new Phaser.Game(width, height, Phaser.CANVAS, 'phaser-example', { preload: preload, create: create, update: update, render: render });
-let player;
-let socket, players = {};
+let game = new Phaser.Game(width, height, Phaser.CANVAS, 'area', { preload: preload, create: create, update: update, render: render });
+let socket;
+let players = {};
 let map;
-let mapSize = 2000;
-let text;
 let live;
+let keyboard;
 
 function preload() {
     game.load.image('unit', '/assets/images/unit.png');
@@ -24,12 +24,15 @@ function create() {
     game.time.desiredFps = 60;
     game.time.slowMotion = 0;
 
-    bg = game.add.tileSprite(0, 0, mapSize, mapSize, 'map');
+    game.add.tileSprite(0, 0, mapSize, mapSize, 'map');
     game.world.setBounds(0, 0, mapSize, mapSize);
     game.stage.backgroundColor = "#242424";
 
-    //инициализируем клавиатуру
     keyboard = game.input.keyboard.createCursorKeys();
+
+    //получаем имя игрока
+    let playerName = prompt("Please enter your name", "guest");
+    socket.emit("join_new_player", playerName);
 
     //создаем игроков
     socket.on("add_players", function(data) {
@@ -99,6 +102,11 @@ function update() {
         setCollisions();
         characterController();
     }
+
+    for (let id in players) {
+        players[id].text.x = Math.floor(players[id].player.x);
+        players[id].text.y = Math.floor(players[id].player.y - 20);
+    }
 }
 
 function bulletHitHandler(player, bullet) {
@@ -136,8 +144,11 @@ function render() {
     game.debug.cameraInfo(game.camera, 32, 32);
 }
 
-function addPlayer(playerId, x, y) {
-    player = game.add.sprite(x, y, "unit");
+function addPlayer(playerId, x, y, name) {
+    let player = game.add.sprite(x, y, 'unit');
+    let text = game.add.text(0, 0, name, {font: '14px Arial', fill: '#ffffff'});
+    let weapon = game.add.weapon(30, 'bullet');
+
     game.physics.arcade.enable(player);
     player.smoothed = false;
     player.anchor.setTo(0.5, 0.5);
@@ -145,11 +156,12 @@ function addPlayer(playerId, x, y) {
     player.body.collideWorldBounds = true;
     player.id = playerId;
 
-    let weapon = game.add.weapon(30, 'bullet');
+    text.anchor.set(0.5);
+
     weapon.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
     weapon.bulletSpeed = 600;
     weapon.fireRate = 100;
     weapon.trackSprite(player, 0, 0, true);
 
-    players[playerId] = { player, weapon };
+    players[playerId] = { player, weapon, text };
 }

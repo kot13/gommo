@@ -1,7 +1,7 @@
 *.prof
 vendor/**
 !vendor/manifest
-/rabbitmmo
+/gommo
 /rice-box.go
 
 # idea project files
