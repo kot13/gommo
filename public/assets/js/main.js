@@ -10,13 +10,17 @@ let live;
 let keyboard;
 let explosion;
 
+let soldier;
+
 function preload() {
     game.load.audio('explosion', '/assets/audio/explosion.mp3');
     game.load.image('unit', '/assets/images/unit.png');
     game.load.image('bullet', '/assets/images/bullet.png');
     game.load.image('killer', '/assets/images/killers.png');
-    // game.load.image('map', '/assets/images/grid.png');
     game.load.image('earth', '/assets/images/scorched_earth.png');
+
+    game.load.atlasJSONHash('survivor_feet_walk', '/assets/sprites/survivor_feet_walk.png', '/assets/sprites/survivor_feet_walk.json');
+    game.load.atlasJSONHash('survivor_move', '/assets/sprites/survivor_move.png', '/assets/sprites/survivor_move.json');
 }
 
 function create() {
@@ -100,6 +104,7 @@ function create() {
     socket.on('player_disconnect', function(id) {
         if (id in players) {
             players[id].player.kill();
+            players[id].text.destroy();
             delete players[id];
         }
     });
@@ -115,7 +120,7 @@ function update() {
 
     for (let id in players) {
         players[id].text.x = Math.floor(players[id].player.x);
-        players[id].text.y = Math.floor(players[id].player.y - 20);
+        players[id].text.y = Math.floor(players[id].player.y - 25);
     }
 }
 
@@ -155,14 +160,24 @@ function render() {
 }
 
 function addPlayer(playerId, x, y, name) {
-    let player = game.add.sprite(x, y, 'unit');
     let text = game.add.text(0, 0, name, {font: '14px Arial', fill: '#ffffff'});
     let weapon = game.add.weapon(30, 'bullet');
+    let player = game.add.sprite(x, y, 'survivor_feet_walk');
+    player.anchor.setTo(0.5, 0.5);
+    player.scale.setTo(0.25, 0.25);
+
+    player.animations.add('walk');
+    player.animations.play('walk', 15, true);
+
+    let body = game.make.sprite(0, 0, 'survivor_move');
+    body.anchor.setTo(0.5, 0.5);
+    body.animations.add('walk');
+    body.animations.play('walk', 15, true);
+
+    player.addChild(body);
 
     game.physics.arcade.enable(player);
     player.smoothed = false;
-    player.anchor.setTo(0.5, 0.5);
-    player.scale.set(.8);
     player.body.collideWorldBounds = true;
     player.id = playerId;
 
@@ -171,7 +186,7 @@ function addPlayer(playerId, x, y, name) {
     weapon.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
     weapon.bulletSpeed = 600;
     weapon.fireRate = 100;
-    weapon.trackSprite(player, 0, 0, true);
+    weapon.trackSprite(player, 25, 14, true);
 
     players[playerId] = { player, weapon, text };
 }

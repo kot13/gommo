@@ -91,13 +91,13 @@ func main() {
 
 			switch character {
 			case "A":
-				x = "-5"
+				x = "-2"
 			case "S":
-				y = "5"
+				y = "2"
 			case "D":
-				x = "5"
+				x = "2"
 			case "W":
-				y = "-5"
+				y = "-2"
 			}
 
 			bytes, err := json.Marshal(map[string]string{
