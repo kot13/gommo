@@ -69,13 +69,13 @@ function create() {
 
     //вызываем выстрелы
     game.input.onDown.add(function() {
-        explosion.play();
         socket.emit("shots_fired", socket.id);
     });
 
     //ввзываем выстрелы
     socket.on('player_fire_add', function(id) {
         if (live && id in players) {
+            explosion.play();
             players[id].weapon.fire();
         }
     });
