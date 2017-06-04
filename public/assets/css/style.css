@@ -1,22 +1,3 @@
-/*
-Theme Name: Rocket-Brush-Theme
-Theme URI: https://wordpress.org/themes
-Author: SpringBear Design
-Author URI: http://springbear.in
-Description: Theme
-Version: 2.0
-License: GNU General Public License v2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.html
-Tags: one-column, two-columns, right-sidebar, accessibility-ready, custom-background, custom-colors, custom-header, custom-menu, editor-style, featured-images, flexible-header, microformats, post-formats, rtl-language-support, sticky-post, threaded-comments, translation-ready, blog
-Text Domain: vms_lab
-
-This theme, like WordPress, is licensed under the GPL.
-Use it to make something cool, have fun, and share what you've learned with others.
-*/
-
-
-/* reset browser styles */
-
 html,
 body,
 div,
@@ -154,23 +135,14 @@ a {
     text-decoration: none;
 }
 
-.clear {
-    clear: both;
-}
-
-
-/* end reset browser styles */
 body {
     width: 100%;
-    height: 0px;
+    height: 0;
 }
-
-
 
 canvas {
     position: absolute;
     display: block;
-    /*cursor: none !important;  */  
     z-index: -9999;
     image-rendering: optimizeSpeed;
     image-rendering: -moz-crisp-edges;
@@ -178,13 +150,4 @@ canvas {
     image-rendering: optimize-contrast;
     -ms-interpolation-mode: nearest-neighbor;
 
-}
-
-
-body > div.dg.ac > div {
-    display: none;
-}
-
-body > div.dg.ac > div:nth-child(1) {
-    display: block !important;
 }

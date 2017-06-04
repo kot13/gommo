@@ -1,5 +1,7 @@
 # MMO about rabbits
 
+[ ![Codeship Status for kot13/gommo](https://app.codeship.com/projects/67bf45f0-2b34-0135-7e95-4afd89638027/status?branch=master)](https://app.codeship.com/projects/224028)
+
 ## Run
 You need to install gvt before:
 ```

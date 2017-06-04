@@ -8,12 +8,15 @@ let players = {};
 let map;
 let live;
 let keyboard;
+let explosion;
 
 function preload() {
+    game.load.audio('explosion', '/assets/audio/explosion.mp3');
     game.load.image('unit', '/assets/images/unit.png');
     game.load.image('bullet', '/assets/images/bullet.png');
     game.load.image('killer', '/assets/images/killers.png');
-    game.load.image('map', '/assets/images/grid.png');
+    // game.load.image('map', '/assets/images/grid.png');
+    game.load.image('earth', '/assets/images/scorched_earth.png');
 }
 
 function create() {
@@ -24,11 +27,15 @@ function create() {
     game.time.desiredFps = 60;
     game.time.slowMotion = 0;
 
-    game.add.tileSprite(0, 0, mapSize, mapSize, 'map');
+    game.add.tileSprite(0, 0, mapSize, mapSize, 'earth');
     game.world.setBounds(0, 0, mapSize, mapSize);
     game.stage.backgroundColor = "#242424";
 
+    // клавиатура
     keyboard = game.input.keyboard.createCursorKeys();
+
+    //звуки
+    explosion = game.add.audio('explosion');
 
     //получаем имя игрока
     let playerName = prompt("Please enter your name", "guest");
@@ -62,6 +69,7 @@ function create() {
 
     //вызываем выстрелы
     game.input.onDown.add(function() {
+        explosion.play();
         socket.emit("shots_fired", socket.id);
     });
 
