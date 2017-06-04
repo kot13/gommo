@@ -1,6 +1,11 @@
 # MMO about rabbits
 
 ## Run
+You need to install gvt before:
+```
+$ go get -u github.com/FiloSottile/gvt
+```
+Now:
 ```
 $ gvt restore
 $ go build
