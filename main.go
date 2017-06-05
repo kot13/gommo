@@ -8,7 +8,13 @@ import (
 	"math/rand"
 	"net/http"
 	"sync"
+	"fmt"
 )
+
+type Location struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+}
 
 type Zoo struct {
 	sync.RWMutex
@@ -68,8 +74,8 @@ func main() {
 			if err != nil {
 				log.Println("Error marshal json")
 			}
-			so.BroadcastTo("room", "add_players", string(bytes))
-			so.Emit("add_players", string(bytes))
+
+			sendToAll(so, "room", "add_players", string(bytes))
 		})
 
 		// ЕСЛИ КРОЛИК ПОВЕРНУЛСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
@@ -85,38 +91,24 @@ func main() {
 		})
 
 		// ЕСЛИ КРОЛИК ДВИГАЕТСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
-		so.On("player_move", func(character string) {
-			x := "0"
-			y := "0"
-
-			switch character {
-			case "A":
-				x = "-2"
-			case "S":
-				y = "2"
-			case "D":
-				x = "2"
-			case "W":
-				y = "-2"
-			}
-
+		so.On("player_move", func(location Location) {
+			log.Println("Received location: " + fmt.Sprint(location))
 			bytes, err := json.Marshal(map[string]string{
 				"id": so.Id(),
-				"x":  x,
-				"y":  y,
+				"x":  fmt.Sprint(location.X),
+				"y":  fmt.Sprint(location.Y),
 			})
+
 			if err != nil {
 				log.Println("Error marshal json")
 			}
 
-			so.BroadcastTo("room", "player_position_update", string(bytes))
-			so.Emit("player_position_update", string(bytes))
+			sendToAll(so, "room", "player_position_update", string(bytes))
 		})
 
 		// ЕСЛИ КРОЛИК ВЫСТРЕЛИЛ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("shots_fired", func(id string) {
-			so.BroadcastTo("room", "player_fire_add", id)
-			so.Emit("player_fire_add", id)
+			sendToAll(so, "room", "player_fire_add", id)
 		})
 
 		// ЕСЛИ ПРОИЗОШЛО ПОПАДАНИЕ ОПОВЕЩАЕМ КЛИЕНТОВ
@@ -125,8 +117,7 @@ func main() {
 			zoo.m[victimId].IsAlive = false
 			zoo.Unlock()
 
-			so.BroadcastTo("room", "clean_dead_player", victimId)
-			so.Emit("clean_dead_player", victimId)
+			sendToAll(so, "room", "clean_dead_player", victimId)
 		})
 
 		// ОПОВЕЩАЕМ О ДИСКОНЕКТЕ
@@ -145,4 +136,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func sendToAll(so socketio.Socket, room, event string, args ...interface{}) {
+	so.BroadcastTo(room, event, args)
+	so.Emit(event, args)
 }
