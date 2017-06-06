@@ -141,23 +141,18 @@ function setCollisions() {
 }
 
 function characterController() {
-    let player = players[socket.id].player;
     if (game.input.keyboard.isDown(Phaser.Keyboard.A) || keyboard.left.isDown) {
-        player.x -= 2
+        socket.emit("player_move", "A");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.D) || keyboard.right.isDown) {
-        player.x += 2
+        socket.emit("player_move", "D");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.W) || keyboard.up.isDown) {
-        player.y -= 2
+        socket.emit("player_move", "W");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.S) || keyboard.down.isDown) {
-        player.y += 2
+        socket.emit("player_move", "S");
     }
-    socket.emit("player_move", {
-        x: player.x,
-        y: player.y
-    })
 }
 
 function render() {

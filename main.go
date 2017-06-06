@@ -11,11 +11,6 @@ import (
 	"fmt"
 )
 
-type Location struct {
-	X int `json:"x"`
-	Y int `json:"y"`
-}
-
 type Zoo struct {
 	sync.RWMutex
 	m map[string]*Bunny
@@ -47,6 +42,9 @@ var zoo Zoo = Zoo{
 	m: make(map[string]*Bunny),
 }
 
+const MAP_LOW_BOUND = 50
+const MAP_HIGH_BOUND = 1950
+
 func main() {
 	http.Handle("/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
 
@@ -75,7 +73,8 @@ func main() {
 				log.Println("Error marshal json")
 			}
 
-			sendToAll(so, "room", "add_players", string(bytes))
+			so.BroadcastTo("room", "add_players", string(bytes))
+			so.Emit("add_players", string(bytes))
 		})
 
 		// ЕСЛИ КРОЛИК ПОВЕРНУЛСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
@@ -91,24 +90,42 @@ func main() {
 		})
 
 		// ЕСЛИ КРОЛИК ДВИГАЕТСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
-		so.On("player_move", func(location Location) {
-			log.Println("Received location: " + fmt.Sprint(location))
+		so.On("player_move", func(character string) {
+			zoo.Lock()
+			bunny := zoo.m[so.Id()]
+
+			switch character {
+			case "A":
+				bunny.X -= 2
+			case "S":
+				bunny.Y += 2
+			case "D":
+				bunny.X += 2
+			case "W":
+				bunny.Y -= 2
+			}
+
+			bunny.checkBounds()
+
 			bytes, err := json.Marshal(map[string]string{
 				"id": so.Id(),
-				"x":  fmt.Sprint(location.X),
-				"y":  fmt.Sprint(location.Y),
+				"x":  fmt.Sprint(bunny.X),
+				"y":  fmt.Sprint(bunny.Y),
 			})
+			zoo.Unlock()
 
 			if err != nil {
 				log.Println("Error marshal json")
 			}
 
-			sendToAll(so, "room", "player_position_update", string(bytes))
+			so.BroadcastTo("room", "player_position_update", string(bytes))
+			so.Emit("player_position_update", string(bytes))
 		})
 
 		// ЕСЛИ КРОЛИК ВЫСТРЕЛИЛ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("shots_fired", func(id string) {
-			sendToAll(so, "room", "player_fire_add", id)
+			so.BroadcastTo("room", "player_fire_add", id)
+			so.Emit("player_fire_add", id)
 		})
 
 		// ЕСЛИ ПРОИЗОШЛО ПОПАДАНИЕ ОПОВЕЩАЕМ КЛИЕНТОВ
@@ -117,7 +134,8 @@ func main() {
 			zoo.m[victimId].IsAlive = false
 			zoo.Unlock()
 
-			sendToAll(so, "room", "clean_dead_player", victimId)
+			so.BroadcastTo("room", "clean_dead_player", victimId)
+			so.Emit("clean_dead_player", victimId)
 		})
 
 		// ОПОВЕЩАЕМ О ДИСКОНЕКТЕ
@@ -138,7 +156,9 @@ func main() {
 	}
 }
 
-func sendToAll(so socketio.Socket, room, event string, args ...interface{}) {
-	so.BroadcastTo(room, event, args)
-	so.Emit(event, args)
+func (bunny *Bunny) checkBounds() {
+	if bunny.X < MAP_LOW_BOUND { bunny.X = MAP_LOW_BOUND }
+	if bunny.Y < MAP_LOW_BOUND { bunny.Y = MAP_LOW_BOUND }
+	if bunny.X > MAP_HIGH_BOUND { bunny.X = MAP_HIGH_BOUND }
+	if bunny.Y > MAP_HIGH_BOUND { bunny.Y = MAP_HIGH_BOUND }
 }
