@@ -42,6 +42,9 @@ var zoo Zoo = Zoo{
 	m: make(map[string]*Bunny),
 }
 
+const MAP_LOW_BOUND = 50
+const MAP_HIGH_BOUND = 1950
+
 func main() {
 	http.Handle("/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
 
@@ -100,6 +103,9 @@ func main() {
 			case "W":
 				bunny.Y -= 2
 			}
+
+			bunny.checkBounds()
+
 			bytes, err := json.Marshal(map[string]string{
 				"id": so.Id(),
 				"x":  fmt.Sprint(bunny.X),
@@ -146,4 +152,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func (bunny *Bunny) checkBounds() {
+	if bunny.X < MAP_LOW_BOUND { bunny.X = MAP_LOW_BOUND }
+	if bunny.Y < MAP_LOW_BOUND { bunny.Y = MAP_LOW_BOUND }
+	if bunny.X > MAP_HIGH_BOUND { bunny.X = MAP_HIGH_BOUND }
+	if bunny.Y > MAP_HIGH_BOUND { bunny.Y = MAP_HIGH_BOUND }
 }
