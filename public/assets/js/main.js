@@ -67,8 +67,8 @@ function create() {
     //обновляем положение игроков
     socket.on("player_position_update", function(data) {
         data = JSON.parse(data);
-        players[data.id].player.x += Number(data.x);
-        players[data.id].player.y += Number(data.y);
+        players[data.id].player.x = Number(data.x);
+        players[data.id].player.y = Number(data.y);
     });
 
     //вызываем выстрелы
@@ -141,18 +141,23 @@ function setCollisions() {
 }
 
 function characterController() {
+    let player = players[socket.id].player;
     if (game.input.keyboard.isDown(Phaser.Keyboard.A) || keyboard.left.isDown) {
-        socket.emit("player_move", "A");
+        player.x -= 2
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.D) || keyboard.right.isDown) {
-        socket.emit("player_move", "D");
+        player.x += 2
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.W) || keyboard.up.isDown) {
-        socket.emit("player_move", "W");
+        player.y -= 2
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.S) || keyboard.down.isDown) {
-        socket.emit("player_move", "S");
+        player.y += 2
     }
+    socket.emit("player_move", {
+        x: player.x,
+        y: player.y
+    })
 }
 
 function render() {
