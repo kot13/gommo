@@ -91,6 +91,7 @@ func main() {
 
 		// ЕСЛИ КРОЛИК ДВИГАЕТСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("player_move", func(character string) {
+			zoo.Lock()
 			bunny := zoo.m[so.Id()]
 
 			switch character {
@@ -111,6 +112,7 @@ func main() {
 				"x":  fmt.Sprint(bunny.X),
 				"y":  fmt.Sprint(bunny.Y),
 			})
+			zoo.Unlock()
 
 			if err != nil {
 				log.Println("Error marshal json")
