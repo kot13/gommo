@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 	"fmt"
+	"time"
 )
 
 type Zoo struct {
@@ -45,6 +46,8 @@ var zoo Zoo = Zoo{
 const MAP_LOW_BOUND = 50
 const MAP_HIGH_BOUND = 1950
 
+var worldTimer = NewWorldTimer(sendSnapshot, 50 * time.Millisecond)
+
 func main() {
 	http.Handle("/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
 
@@ -53,12 +56,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	log.Println("FUCK")
 	server.On("connection", func(so socketio.Socket) {
 		log.Println("On connection: " + so.Id())
 
 		so.Join("room")
 
 		so.On("join_new_player", func(playerName string) {
+			prevPlayerCount := zoo.playerCount()
+
 			// СОЗДАЁМ КРОЛИКА
 			bunny := NewBunny(so.Id(), playerName)
 			zoo.Lock()
@@ -72,6 +78,8 @@ func main() {
 			if err != nil {
 				log.Println("Error marshal json")
 			}
+
+			updateWorldTimer(prevPlayerCount)
 
 			so.BroadcastTo("room", "add_players", string(bytes))
 			so.Emit("add_players", string(bytes))
@@ -140,10 +148,15 @@ func main() {
 
 		// ОПОВЕЩАЕМ О ДИСКОНЕКТЕ
 		so.On("disconnection", func() {
+			prevPlayerCount := zoo.playerCount()
+
 			log.Println("On disconnect: " + so.Id())
 			zoo.Lock()
 			delete(zoo.m, so.Id())
 			zoo.Unlock()
+
+			updateWorldTimer(prevPlayerCount)
+
 			so.BroadcastTo("room", "player_disconnect", so.Id())
 		})
 	})
@@ -161,4 +174,24 @@ func (bunny *Bunny) checkBounds() {
 	if bunny.Y < MAP_LOW_BOUND { bunny.Y = MAP_LOW_BOUND }
 	if bunny.X > MAP_HIGH_BOUND { bunny.X = MAP_HIGH_BOUND }
 	if bunny.Y > MAP_HIGH_BOUND { bunny.Y = MAP_HIGH_BOUND }
+}
+
+func (zoo *Zoo) playerCount() int {
+	zoo.Lock()
+	playerCount := len(zoo.m)
+	zoo.Unlock()
+	return playerCount
+}
+
+func updateWorldTimer(prevPlayerCount int) {
+	playerCount := zoo.playerCount()
+	if playerCount == 0 && prevPlayerCount != 0 {
+		worldTimer.Stop()
+	} else if playerCount != 0 && prevPlayerCount == 0 {
+		worldTimer.Start()
+	}
+}
+
+func sendSnapshot() {
+	log.Println("Sending world snapshot at " + fmt.Sprint(time.Now()))
 }
