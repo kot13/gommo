@@ -42,7 +42,13 @@ function create() {
     explosion = game.add.audio('explosion');
 
     //получаем имя игрока
-    let playerName = prompt("Please enter your name", "guest");
+    let savedName = window.localStorage.getItem("player_name");
+    if (!savedName) savedName = "guest";
+
+    let playerName = prompt("Please enter your name", savedName);
+    if (!playerName) playerName = "";
+    window.localStorage.setItem("player_name", playerName);
+
     socket.emit("join_new_player", playerName);
 
     //вызываем выстрелы
