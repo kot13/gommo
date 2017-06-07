@@ -8,7 +8,8 @@ import (
 	"math/rand"
 	"net/http"
 	"sync"
-	"fmt"
+	"time"
+	"strconv"
 )
 
 type Zoo struct {
@@ -20,6 +21,7 @@ type Bunny struct {
 	Id      string `json:"id"`
 	X       uint32 `json:"x"`
 	Y       uint32 `json:"y"`
+	Rotation float64 `json:"rotation"`
 	Name    string `json:"name"`
 	Width   uint32 `json:"wight"`
 	Height  uint32 `json:"height"`
@@ -31,6 +33,7 @@ func NewBunny(id string, playerName string) *Bunny {
 		Id:      id,
 		X:       uint32(rand.Intn(750)),
 		Y:       uint32(rand.Intn(750)),
+		Rotation: 0,
 		Name:    playerName,
 		Width:   32,
 		Height:  32,
@@ -45,6 +48,8 @@ var zoo Zoo = Zoo{
 const MAP_LOW_BOUND = 50
 const MAP_HIGH_BOUND = 1950
 
+var worldTimer *WorldTimer
+
 func main() {
 	http.Handle("/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
 
@@ -56,37 +61,26 @@ func main() {
 	server.On("connection", func(so socketio.Socket) {
 		log.Println("On connection: " + so.Id())
 
+		worldTimer = NewWorldTimer(so, sendSnapshot, 40 * time.Millisecond)
 		so.Join("room")
 
 		so.On("join_new_player", func(playerName string) {
+			prevPlayerCount := zoo.playerCount()
+
 			// СОЗДАЁМ КРОЛИКА
 			bunny := NewBunny(so.Id(), playerName)
 			zoo.Lock()
 			zoo.m[so.Id()] = bunny
 			zoo.Unlock()
 
-			// ОТПРАВЛЯЕМ ЗООПАРК НА КЛИЕНТА
-			zoo.Lock()
-			bytes, err := json.Marshal(zoo.m)
-			zoo.Unlock()
-			if err != nil {
-				log.Println("Error marshal json")
-			}
-
-			so.BroadcastTo("room", "add_players", string(bytes))
-			so.Emit("add_players", string(bytes))
+			updateWorldTimer(prevPlayerCount)
 		})
 
 		// ЕСЛИ КРОЛИК ПОВЕРНУЛСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("player_rotation", func(rotation string) {
-			bytes, err := json.Marshal(map[string]string{
-				"id":       so.Id(),
-				"rotation": rotation,
-			})
-			if err != nil {
-				log.Println("Error marshal json")
-			}
-			so.BroadcastTo("room", "player_rotation_update", string(bytes))
+			zoo.Lock()
+			zoo.m[so.Id()].Rotation, _ = strconv.ParseFloat(rotation, 64)
+			zoo.Unlock()
 		})
 
 		// ЕСЛИ КРОЛИК ДВИГАЕТСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
@@ -106,20 +100,7 @@ func main() {
 			}
 
 			bunny.checkBounds()
-
-			bytes, err := json.Marshal(map[string]string{
-				"id": so.Id(),
-				"x":  fmt.Sprint(bunny.X),
-				"y":  fmt.Sprint(bunny.Y),
-			})
 			zoo.Unlock()
-
-			if err != nil {
-				log.Println("Error marshal json")
-			}
-
-			so.BroadcastTo("room", "player_position_update", string(bytes))
-			so.Emit("player_position_update", string(bytes))
 		})
 
 		// ЕСЛИ КРОЛИК ВЫСТРЕЛИЛ ОПОВЕЩАЕМ КЛИЕНТОВ
@@ -133,18 +114,18 @@ func main() {
 			zoo.Lock()
 			zoo.m[victimId].IsAlive = false
 			zoo.Unlock()
-
-			so.BroadcastTo("room", "clean_dead_player", victimId)
-			so.Emit("clean_dead_player", victimId)
 		})
 
 		// ОПОВЕЩАЕМ О ДИСКОНЕКТЕ
 		so.On("disconnection", func() {
+			prevPlayerCount := zoo.playerCount()
+
 			log.Println("On disconnect: " + so.Id())
 			zoo.Lock()
 			delete(zoo.m, so.Id())
 			zoo.Unlock()
-			so.BroadcastTo("room", "player_disconnect", so.Id())
+
+			updateWorldTimer(prevPlayerCount)
 		})
 	})
 
@@ -161,4 +142,37 @@ func (bunny *Bunny) checkBounds() {
 	if bunny.Y < MAP_LOW_BOUND { bunny.Y = MAP_LOW_BOUND }
 	if bunny.X > MAP_HIGH_BOUND { bunny.X = MAP_HIGH_BOUND }
 	if bunny.Y > MAP_HIGH_BOUND { bunny.Y = MAP_HIGH_BOUND }
+}
+
+func (zoo *Zoo) playerCount() int {
+	zoo.Lock()
+	playerCount := len(zoo.m)
+	zoo.Unlock()
+	return playerCount
+}
+
+func updateWorldTimer(prevPlayerCount int) {
+	playerCount := zoo.playerCount()
+	if playerCount == 0 && prevPlayerCount != 0 {
+		worldTimer.Stop()
+	} else if playerCount != 0 && prevPlayerCount == 0 {
+		worldTimer.Start()
+	}
+}
+
+func sendSnapshot(so socketio.Socket) {
+	zoo.Lock()
+	bytes, err := json.Marshal(zoo.m)
+	zoo.Unlock()
+
+	if err != nil {
+		log.Println("Error marshal json")
+	}
+
+	sendToAll(so, "room", "world_update", string(bytes))
+}
+
+func sendToAll(so socketio.Socket, room, event string, args ...interface{}) {
+	so.BroadcastTo(room, event, args...)
+	so.Emit(event, args...)
 }
