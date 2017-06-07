@@ -2,14 +2,10 @@ package main
 
 import (
 	"time"
-	"sync"
 	"github.com/googollee/go-socket.io"
-	"log"
 )
 
 type WorldTimer struct {
-	sync.RWMutex
-
 	socket socketio.Socket
 	whatFunc func(socket socketio.Socket)
 	updateDuration time.Duration
@@ -27,11 +23,8 @@ func NewWorldTimer(socket socketio.Socket, whatFunc func(socket socketio.Socket)
 }
 
 func (timer *WorldTimer) Start() {
-	timer.Lock()
 	timer.ticker = time.NewTicker(40 * time.Millisecond)
 	timer.quit = make(chan struct{})
-	timer.Unlock()
-	log.Println(timer.quit)
 
 	go func() {
 		for {
@@ -47,7 +40,5 @@ func (timer *WorldTimer) Start() {
 }
 
 func (timer *WorldTimer) Stop() {
-	timer.Lock()
 	close(timer.quit)
-	timer.Unlock()
 }
