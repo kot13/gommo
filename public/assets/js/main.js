@@ -64,13 +64,6 @@ function create() {
         players[data.id].player.rotation = data.rotation;
     });
 
-    //обновляем положение игроков
-    socket.on("player_position_update", function(data) {
-        data = JSON.parse(data);
-        players[data.id].player.x = Number(data.x);
-        players[data.id].player.y = Number(data.y);
-    });
-
     //вызываем выстрелы
     game.input.onDown.add(function() {
         socket.emit("shots_fired", socket.id);
@@ -108,6 +101,16 @@ function create() {
             delete players[id];
         }
     });
+
+    socket.on('world_update', function(data) {
+        for (let playerId in data) {
+            if (playerId in players) {
+                players[playerId].player.x = data[playerId].x;
+                players[playerId].player.y = data[playerId].y;
+            }
+        }
+    });
+
 }
 
 function update() {

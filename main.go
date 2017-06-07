@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net/http"
 	"sync"
-	"fmt"
 	"time"
 )
 
@@ -46,7 +45,7 @@ var zoo Zoo = Zoo{
 const MAP_LOW_BOUND = 50
 const MAP_HIGH_BOUND = 1950
 
-var worldTimer = NewWorldTimer(sendSnapshot, 50 * time.Millisecond)
+var worldTimer *WorldTimer
 
 func main() {
 	http.Handle("/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
@@ -56,10 +55,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("FUCK")
 	server.On("connection", func(so socketio.Socket) {
 		log.Println("On connection: " + so.Id())
 
+		worldTimer = NewWorldTimer(so, sendSnapshot, 40 * time.Millisecond)
 		so.Join("room")
 
 		so.On("join_new_player", func(playerName string) {
@@ -114,20 +113,7 @@ func main() {
 			}
 
 			bunny.checkBounds()
-
-			bytes, err := json.Marshal(map[string]string{
-				"id": so.Id(),
-				"x":  fmt.Sprint(bunny.X),
-				"y":  fmt.Sprint(bunny.Y),
-			})
 			zoo.Unlock()
-
-			if err != nil {
-				log.Println("Error marshal json")
-			}
-
-			so.BroadcastTo("room", "player_position_update", string(bytes))
-			so.Emit("player_position_update", string(bytes))
 		})
 
 		// ЕСЛИ КРОЛИК ВЫСТРЕЛИЛ ОПОВЕЩАЕМ КЛИЕНТОВ
@@ -192,6 +178,11 @@ func updateWorldTimer(prevPlayerCount int) {
 	}
 }
 
-func sendSnapshot() {
-	log.Println("Sending world snapshot at " + fmt.Sprint(time.Now()))
+func sendSnapshot(so socketio.Socket) {
+	sendToAll(so, "room", "world_update", zoo.m)
+}
+
+func sendToAll(so socketio.Socket, room, event string, args ...interface{}) {
+	so.BroadcastTo(room, event, args...)
+	so.Emit(event, args...)
 }
