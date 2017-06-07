@@ -14,6 +14,11 @@ $ go build
 $ ./gommo
 ```
 
+Type in browser:
+```
+localhost:8080
+```
+
 ## Embedded build
 You need to install go.rice before:
 ```
