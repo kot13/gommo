@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"strconv"
 )
 
 type Zoo struct {
@@ -20,6 +21,7 @@ type Bunny struct {
 	Id      string `json:"id"`
 	X       uint32 `json:"x"`
 	Y       uint32 `json:"y"`
+	Rotation float64 `json:"rotation"`
 	Name    string `json:"name"`
 	Width   uint32 `json:"wight"`
 	Height  uint32 `json:"height"`
@@ -31,6 +33,7 @@ func NewBunny(id string, playerName string) *Bunny {
 		Id:      id,
 		X:       uint32(rand.Intn(750)),
 		Y:       uint32(rand.Intn(750)),
+		Rotation: 0,
 		Name:    playerName,
 		Width:   32,
 		Height:  32,
@@ -70,30 +73,14 @@ func main() {
 			zoo.m[so.Id()] = bunny
 			zoo.Unlock()
 
-			// ОТПРАВЛЯЕМ ЗООПАРК НА КЛИЕНТА
-			zoo.Lock()
-			bytes, err := json.Marshal(zoo.m)
-			zoo.Unlock()
-			if err != nil {
-				log.Println("Error marshal json")
-			}
-
 			updateWorldTimer(prevPlayerCount)
-
-			so.BroadcastTo("room", "add_players", string(bytes))
-			so.Emit("add_players", string(bytes))
 		})
 
 		// ЕСЛИ КРОЛИК ПОВЕРНУЛСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("player_rotation", func(rotation string) {
-			bytes, err := json.Marshal(map[string]string{
-				"id":       so.Id(),
-				"rotation": rotation,
-			})
-			if err != nil {
-				log.Println("Error marshal json")
-			}
-			so.BroadcastTo("room", "player_rotation_update", string(bytes))
+			zoo.Lock()
+			zoo.m[so.Id()].Rotation, _ = strconv.ParseFloat(rotation, 64)
+			zoo.Unlock()
 		})
 
 		// ЕСЛИ КРОЛИК ДВИГАЕТСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
@@ -127,9 +114,6 @@ func main() {
 			zoo.Lock()
 			zoo.m[victimId].IsAlive = false
 			zoo.Unlock()
-
-			so.BroadcastTo("room", "clean_dead_player", victimId)
-			so.Emit("clean_dead_player", victimId)
 		})
 
 		// ОПОВЕЩАЕМ О ДИСКОНЕКТЕ
@@ -142,8 +126,6 @@ func main() {
 			zoo.Unlock()
 
 			updateWorldTimer(prevPlayerCount)
-
-			so.BroadcastTo("room", "player_disconnect", so.Id())
 		})
 	})
 
@@ -179,7 +161,15 @@ func updateWorldTimer(prevPlayerCount int) {
 }
 
 func sendSnapshot(so socketio.Socket) {
-	sendToAll(so, "room", "world_update", zoo.m)
+	zoo.Lock()
+	bytes, err := json.Marshal(zoo.m)
+	zoo.Unlock()
+
+	if err != nil {
+		log.Println("Error marshal json")
+	}
+
+	sendToAll(so, "room", "world_update", string(bytes))
 }
 
 func sendToAll(so socketio.Socket, room, event string, args ...interface{}) {

@@ -4,6 +4,7 @@ import (
 	"time"
 	"sync"
 	"github.com/googollee/go-socket.io"
+	"log"
 )
 
 type WorldTimer struct {
@@ -30,6 +31,7 @@ func (timer *WorldTimer) Start() {
 	timer.ticker = time.NewTicker(40 * time.Millisecond)
 	timer.quit = make(chan struct{})
 	timer.Unlock()
+	log.Println(timer.quit)
 
 	go func() {
 		for {
