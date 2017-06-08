@@ -3,7 +3,7 @@ package logger
 import (
 	"fmt"
 	"os"
-	"gommo/config"
+	"github.com/kot13/gommo/config"
 	"github.com/Sirupsen/logrus"
 	"encoding/json"
 )

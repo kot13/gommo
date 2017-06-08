@@ -1,17 +1,18 @@
 package main
 
 import (
-	"gommo/config"
-	"gommo/logger"
 	"encoding/json"
-	"github.com/GeertJohan/go.rice"
-	"github.com/googollee/go-socket.io"
-	log "github.com/Sirupsen/logrus"
 	"math/rand"
 	"net/http"
 	"sync"
 	"time"
 	"strconv"
+
+	"github.com/GeertJohan/go.rice"
+	"github.com/googollee/go-socket.io"
+	"github.com/kot13/gommo/config"
+	"github.com/kot13/gommo/logger"
+	log "github.com/Sirupsen/logrus"
 )
 
 type Zoo struct {
