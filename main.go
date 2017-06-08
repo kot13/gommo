@@ -1,10 +1,12 @@
 package main
 
 import (
+	"gommo/config"
+	"gommo/logger"
 	"encoding/json"
 	"github.com/GeertJohan/go.rice"
 	"github.com/googollee/go-socket.io"
-	"log"
+	log "github.com/Sirupsen/logrus"
 	"math/rand"
 	"net/http"
 	"sync"
@@ -51,6 +53,15 @@ const MAP_HIGH_BOUND = 1950
 var worldTimer *WorldTimer
 
 func main() {
+	conf := config.GetConfig()
+	logFinalizer, err := logger.InitLogger(conf.Logger)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logFinalizer()
+
+	log.Info("start")
+
 	http.Handle("/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
 
 	server, err := socketio.NewServer(nil)
@@ -131,7 +142,7 @@ func main() {
 
 	http.Handle("/ws/", server)
 
-	err = http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(conf.App.AppPort, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

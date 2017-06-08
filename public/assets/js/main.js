@@ -12,8 +12,6 @@ let live;
 let keyboard;
 let explosion;
 
-let soldier;
-
 function preload() {
     game.load.audio('explosion', '/assets/audio/explosion.mp3');
     game.load.image('unit', '/assets/images/unit.png');
