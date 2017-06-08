@@ -1,0 +1,364 @@
+{"frames": [
+
+{
+	"filename": "survivor-idle_rifle_0.png",
+	"frame": {"x":0,"y":412,"w":313,"h":207},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":207},
+	"sourceSize": {"w":313,"h":207}
+},
+{
+	"filename": "survivor-move_rifle_0.png",
+	"frame": {"x":1252,"y":412,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_1.png",
+	"frame": {"x":1565,"y":412,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_2.png",
+	"frame": {"x":1249,"y":0,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_3.png",
+	"frame": {"x":0,"y":206,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_4.png",
+	"frame": {"x":936,"y":0,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_5.png",
+	"frame": {"x":1562,"y":0,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_6.png",
+	"frame": {"x":313,"y":206,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_7.png",
+	"frame": {"x":1252,"y":206,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_8.png",
+	"frame": {"x":1565,"y":206,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_9.png",
+	"frame": {"x":939,"y":206,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_10.png",
+	"frame": {"x":939,"y":412,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_11.png",
+	"frame": {"x":313,"y":412,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_12.png",
+	"frame": {"x":626,"y":412,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_13.png",
+	"frame": {"x":939,"y":619,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_14.png",
+	"frame": {"x":1252,"y":619,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_15.png",
+	"frame": {"x":1565,"y":619,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_16.png",
+	"frame": {"x":626,"y":619,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_17.png",
+	"frame": {"x":313,"y":619,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_18.png",
+	"frame": {"x":0,"y":619,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-move_rifle_19.png",
+	"frame": {"x":626,"y":206,"w":313,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":313,"h":206},
+	"sourceSize": {"w":313,"h":206}
+},
+{
+	"filename": "survivor-reload_rifle_0.png",
+	"frame": {"x":1288,"y":825,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_1.png",
+	"frame": {"x":644,"y":1259,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_2.png",
+	"frame": {"x":966,"y":1042,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_3.png",
+	"frame": {"x":322,"y":825,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_4.png",
+	"frame": {"x":0,"y":825,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_5.png",
+	"frame": {"x":644,"y":825,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_6.png",
+	"frame": {"x":966,"y":825,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_7.png",
+	"frame": {"x":322,"y":1042,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_8.png",
+	"frame": {"x":644,"y":1042,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_9.png",
+	"frame": {"x":0,"y":1042,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_10.png",
+	"frame": {"x":966,"y":1259,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_11.png",
+	"frame": {"x":322,"y":1259,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_12.png",
+	"frame": {"x":1288,"y":1042,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_13.png",
+	"frame": {"x":1288,"y":1259,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_14.png",
+	"frame": {"x":322,"y":1476,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_15.png",
+	"frame": {"x":966,"y":1476,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_16.png",
+	"frame": {"x":1288,"y":1476,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_17.png",
+	"frame": {"x":644,"y":1476,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_18.png",
+	"frame": {"x":0,"y":1476,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-reload_rifle_19.png",
+	"frame": {"x":0,"y":1259,"w":322,"h":217},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":322,"h":217},
+	"sourceSize": {"w":322,"h":217}
+},
+{
+	"filename": "survivor-shoot_rifle_0.png",
+	"frame": {"x":312,"y":0,"w":312,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":312,"h":206},
+	"sourceSize": {"w":312,"h":206}
+},
+{
+	"filename": "survivor-shoot_rifle_1.png",
+	"frame": {"x":0,"y":0,"w":312,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":312,"h":206},
+	"sourceSize": {"w":312,"h":206}
+},
+{
+	"filename": "survivor-shoot_rifle_2.png",
+	"frame": {"x":624,"y":0,"w":312,"h":206},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":312,"h":206},
+	"sourceSize": {"w":312,"h":206}
+}],
+"meta": {
+	"app": "http://www.codeandweb.com/texturepacker",
+	"version": "1.0",
+	"image": "body_rifle.png",
+	"format": "RGBA8888",
+	"size": {"w":1878,"h":1693},
+	"scale": "1",
+	"smartupdate": "$TexturePacker:SmartUpdate:0a8dd2e0c8892013af2c30d575ec52dd:2b46de9716c4e5766088b654b4293c4a:4a0dc6270046ab6684db04d458e2102c$"
+}
+}
