@@ -1,6 +1,6 @@
 [logger]
 log_level = "info"
-log_file = "/var/logs/gommo/main.log"
+log_file = "/var/log/gommo/gommo.log"
 
 [app]
 app_port = ":8080"
