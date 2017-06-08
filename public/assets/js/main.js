@@ -74,9 +74,8 @@ function create() {
                 players[playerId].text.visible = data[playerId].isAlive;
 
                 if (data[playerId].isAlive) {
-                    players[playerId].player.x = data[playerId].x;
-                    players[playerId].player.y = data[playerId].y;
-                    players[playerId].player.rotation = data[playerId].rotation;
+                    updatePlayerRotation(players[playerId], data[playerId]);
+                    updatePlayerPosition(players[playerId], data[playerId]);
                 } else {
                     if (playerId === socket.id && live) {
                         live = false;
@@ -103,6 +102,50 @@ function create() {
             }
         }
     });
+}
+
+function updatePlayerRotation(gamePlayer, dataPlayer) {
+    if (gamePlayer.rotationTween !== undefined) {
+        gamePlayer.rotationTween.stop();
+    }
+
+    let player = gamePlayer.player;
+    let delta = getShortestAngle(Phaser.Math.radToDeg(dataPlayer.rotation), player.angle);
+    if (Math.abs(delta) <= 5) {
+        player.rotation = Number(dataPlayer.rotation)
+    } else {
+        let degrees = player.angle + delta;
+        console.log(delta);
+        gamePlayer.rotationTween = game.add.tween(player).to({angle: degrees}, Math.abs(delta), Phaser.Easing.Linear.None);
+        gamePlayer.rotationTween.start()
+    }
+}
+
+function getShortestAngle(angle1, angle2) {
+    let difference = angle2 - angle1;
+    let times = Math.floor((difference - (-180)) / 360);
+
+    return (difference - (times * 360)) * -1;
+}
+
+function updatePlayerPosition(gamePlayer, dataPlayer) {
+    if (gamePlayer.movementTween !== undefined) {
+        gamePlayer.movementTween.stop();
+    }
+
+    let dataPlayerX = Number(dataPlayer.x);
+    let dataPlayerY = Number(dataPlayer.y);
+    let player = gamePlayer.player;
+    let deltaX = dataPlayerX - player.x;
+    let deltaY = dataPlayerY - player.y;
+    let distance = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
+    if (distance <= 4) {
+        player.x = dataPlayerX;
+        player.y = dataPlayerY;
+    } else {
+        gamePlayer.movementTween = game.add.tween(player).to({x: dataPlayerX, y: dataPlayerY}, 5 * distance , Phaser.Easing.Linear.None);
+        gamePlayer.movementTween.start()
+    }
 }
 
 function updateKilledPlayer(playerId) {
