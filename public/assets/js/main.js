@@ -1,6 +1,8 @@
 const width = window.innerWidth;
 const height = window.innerHeight;
 const mapSize = 2000;
+const MAP_LOW_BOUND = 50;
+const MAP_HIGH_BOUND = 1950;
 
 let game = new Phaser.Game(width, height, Phaser.CANVAS, 'area', { preload: preload, create: create, update: update, render: render });
 let socket;
@@ -157,6 +159,14 @@ function characterController() {
         socket.emit("player_move", "S");
         player.y += 2
     }
+    checkBounds(player)
+}
+
+function checkBounds(obj) {
+    if (obj.x < MAP_LOW_BOUND) obj.x = MAP_LOW_BOUND;
+    if (obj.y < MAP_LOW_BOUND) obj.y = MAP_LOW_BOUND;
+    if (obj.x > MAP_HIGH_BOUND) obj.y = MAP_HIGH_BOUND;
+    if (obj.y > MAP_HIGH_BOUND) obj.y = MAP_HIGH_BOUND;
 }
 
 function render() {
