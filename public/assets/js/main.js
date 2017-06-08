@@ -1,6 +1,8 @@
 const width = window.innerWidth;
 const height = window.innerHeight;
 const mapSize = 2000;
+const MAP_LOW_BOUND = 50;
+const MAP_HIGH_BOUND = 1950;
 
 let game = new Phaser.Game(width, height, Phaser.CANVAS, 'area', { preload: preload, create: create, update: update, render: render });
 let socket;
@@ -42,7 +44,13 @@ function create() {
     explosion = game.add.audio('explosion');
 
     //получаем имя игрока
-    let playerName = prompt("Please enter your name", "guest");
+    let savedName = window.localStorage.getItem("player_name");
+    if (!savedName) savedName = "guest";
+
+    let playerName = prompt("Please enter your name", savedName);
+    if (!playerName) playerName = "";
+    window.localStorage.setItem("player_name", playerName);
+
     socket.emit("join_new_player", playerName);
 
     //вызываем выстрелы
@@ -66,9 +74,8 @@ function create() {
                 players[playerId].text.visible = data[playerId].isAlive;
 
                 if (data[playerId].isAlive) {
-                    players[playerId].player.x = data[playerId].x;
-                    players[playerId].player.y = data[playerId].y;
-                    players[playerId].player.rotation = data[playerId].rotation;
+                    updatePlayerRotation(players[playerId], data[playerId]);
+                    updatePlayerPosition(players[playerId], data[playerId]);
                 } else {
                     if (playerId === socket.id && live) {
                         live = false;
@@ -95,6 +102,50 @@ function create() {
             }
         }
     });
+}
+
+function updatePlayerRotation(gamePlayer, dataPlayer) {
+    if (gamePlayer.rotationTween !== undefined) {
+        gamePlayer.rotationTween.stop();
+    }
+
+    let player = gamePlayer.player;
+    let delta = getShortestAngle(Phaser.Math.radToDeg(dataPlayer.rotation), player.angle);
+    if (Math.abs(delta) <= 5) {
+        player.rotation = Number(dataPlayer.rotation)
+    } else {
+        let degrees = player.angle + delta;
+        console.log(delta);
+        gamePlayer.rotationTween = game.add.tween(player).to({angle: degrees}, Math.abs(delta), Phaser.Easing.Linear.None);
+        gamePlayer.rotationTween.start()
+    }
+}
+
+function getShortestAngle(angle1, angle2) {
+    let difference = angle2 - angle1;
+    let times = Math.floor((difference - (-180)) / 360);
+
+    return (difference - (times * 360)) * -1;
+}
+
+function updatePlayerPosition(gamePlayer, dataPlayer) {
+    if (gamePlayer.movementTween !== undefined) {
+        gamePlayer.movementTween.stop();
+    }
+
+    let dataPlayerX = Number(dataPlayer.x);
+    let dataPlayerY = Number(dataPlayer.y);
+    let player = gamePlayer.player;
+    let deltaX = dataPlayerX - player.x;
+    let deltaY = dataPlayerY - player.y;
+    let distance = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
+    if (distance <= 4) {
+        player.x = dataPlayerX;
+        player.y = dataPlayerY;
+    } else {
+        gamePlayer.movementTween = game.add.tween(player).to({x: dataPlayerX, y: dataPlayerY}, 5 * distance , Phaser.Easing.Linear.None);
+        gamePlayer.movementTween.start()
+    }
 }
 
 function updateKilledPlayer(playerId) {
@@ -151,6 +202,14 @@ function characterController() {
         socket.emit("player_move", "S");
         player.y += 2
     }
+    checkBounds(player)
+}
+
+function checkBounds(obj) {
+    if (obj.x < MAP_LOW_BOUND) obj.x = MAP_LOW_BOUND;
+    if (obj.y < MAP_LOW_BOUND) obj.y = MAP_LOW_BOUND;
+    if (obj.x > MAP_HIGH_BOUND) obj.y = MAP_HIGH_BOUND;
+    if (obj.y > MAP_HIGH_BOUND) obj.y = MAP_HIGH_BOUND;
 }
 
 function render() {
