@@ -1,0 +1,6 @@
+[logger]
+log_level = "info"
+log_file = ""
+
+[app]
+app_port = ":8080"
