@@ -7,16 +7,16 @@ import (
 )
 
 type Command struct {
-	what string
-	when time.Time
-	result interface{}
+	What string `json:"what"`
+	When time.Time `json:"when"`
+	Result interface{} `json:"result"`
 }
 
 func NewCommand(what string, when time.Time, result interface{}) *Command {
 	return &Command{
-		what: what,
-		when: when,
-		result: result,
+		What: what,
+		When: when,
+		Result: result,
 	}
 }
 
@@ -62,5 +62,5 @@ func (monitor *CommandMonitor) deleteStaleCommands(playerId string, currentTime 
 }
 
 func (monitor *CommandMonitor) isCommandStale(currentTime time.Time, command *Command) bool {
-	return currentTime.Sub(command.when) < monitor.stalePeriod
+	return currentTime.Sub(command.When) < monitor.stalePeriod
 }

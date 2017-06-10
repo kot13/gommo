@@ -66,14 +66,28 @@ function create() {
 
     socket.on('world_update', function(data) {
         data = JSON.parse(data);
-        for (let playerId in data) {
+        let dataPlayers = data.players;
+        let currentPlayer = players[socket.id];
+        let t = 5;
+        for (let playerId in dataPlayers) {
             if (playerId in players) {
-                players[playerId].player.visible = data[playerId].isAlive;
-                players[playerId].text.visible = data[playerId].isAlive;
+                players[playerId].player.visible = dataPlayers[playerId].isAlive;
+                players[playerId].text.visible = dataPlayers[playerId].isAlive;
 
-                if (data[playerId].isAlive) {
-                    updatePlayerRotation(players[playerId], data[playerId]);
-                    updatePlayerPosition(players[playerId], data[playerId]);
+                if (dataPlayers[playerId].isAlive) {
+                    let lastCommand = data.commands[data.commands.length-1];
+                    if (playerId === socket.id) {
+                        if (!checkCommandAlreadyExecuted(players[playerId], lastCommand)) {
+                            updatePlayerRotation(players[playerId], dataPlayers[playerId]);
+                            updatePlayerPosition(players[playerId], dataPlayers[playerId]);
+                        }
+
+                        players[playerId].lastServerCommand = lastCommand.when
+                    } else {
+                        updatePlayerRotation(players[playerId], dataPlayers[playerId]);
+                        updatePlayerPosition(players[playerId], dataPlayers[playerId]);
+                    }
+
                 } else {
                     if (playerId === socket.id && live) {
                         live = false;
@@ -83,8 +97,8 @@ function create() {
                     }
                 }
             } else {
-                if (data[playerId].isAlive) {
-                    addPlayer(data[playerId]);
+                if (dataPlayers[playerId].isAlive) {
+                    addPlayer(dataPlayers[playerId]);
 
                     if (playerId === socket.id) {
                         game.camera.follow(players[socket.id].player);
@@ -95,11 +109,32 @@ function create() {
         }
 
         for (let playerId in players) {
-            if (!(playerId in data)) {
+            if (!(playerId in dataPlayers)) {
                 updateKilledPlayer(playerId)
             }
         }
     });
+}
+
+function checkCommandAlreadyExecuted(gamePlayer, dataCommand) {
+    if (gamePlayer.lastServerCommand !== undefined &&
+        gamePlayer.lastServerCommand === dataCommand.when) {
+        return true;
+    } else {
+        let gamePlayerCommands = gamePlayer.executedCommands;
+        for (let i = 0; i < gamePlayerCommands.length; i++) {
+            if ((gamePlayerCommands[i].what === dataCommand.what &&
+                isResultEqual(gamePlayerCommands[i].result, dataCommand.result))) {
+                gamePlayerCommands.splice(0, i + 1);
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+function isResultEqual(result1, result2) {
+    return result1.x === result2.x && result1.y === result2.y && fixRotation(result1.rotation) === fixRotation(result2.rotation)
 }
 
 function updatePlayerRotation(gamePlayer, dataPlayer) {
@@ -153,10 +188,16 @@ function updateKilledPlayer(playerId) {
 
 function update() {
     if (live === true) {
-        let newRotation = fixRotation(game.physics.arcade.angleToPointer(players[socket.id].player));
-        if (fixRotation(players[socket.id].player.rotation) !== newRotation) {
-            players[socket.id].player.rotation = newRotation;
-            socket.emit("player_rotation", String(players[socket.id].player.rotation));
+        let player = players[socket.id].player;
+        let newRotation = fixRotation(game.physics.arcade.angleToPointer(player));
+        if (fixRotation(player.rotation) !== newRotation) {
+            player.rotation = newRotation;
+            addPlayerCommand(players[socket.id], "player_rotation", {
+                x: player.x,
+                y: player.y,
+                rotation: player.rotation
+            });
+            socket.emit("player_rotation", String(player.rotation));
         }
         setCollisions();
         characterController();
@@ -189,24 +230,55 @@ function setCollisions() {
 }
 
 function characterController() {
-    let player = players[socket.id].player;
+    let gamePlayer = players[socket.id];
+    let player = gamePlayer.player;
     if (game.input.keyboard.isDown(Phaser.Keyboard.A) || keyboard.left.isDown) {
         socket.emit("player_move", "A");
-        player.x -= 2
+        player.x -= 2;
+        addPlayerCommand(gamePlayer, "player_move_A", {
+            x: player.x,
+            y: player.y,
+            rotation: player.rotation
+        })
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.D) || keyboard.right.isDown) {
         socket.emit("player_move", "D");
-        player.x += 2
+        player.x += 2;
+        addPlayerCommand(gamePlayer, "player_move_D", {
+            x: player.x,
+            y: player.y,
+            rotation: player.rotation
+        })
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.W) || keyboard.up.isDown) {
         socket.emit("player_move", "W");
-        player.y -= 2
+        player.y -= 2;
+        addPlayerCommand(gamePlayer, "player_move_W", {
+            x: player.x,
+            y: player.y,
+            rotation: player.rotation
+        })
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.S) || keyboard.down.isDown) {
         socket.emit("player_move", "S");
-        player.y += 2
+        player.y += 2;
+        addPlayerCommand(gamePlayer, "player_move_S", {
+            x: player.x,
+            y: player.y,
+            rotation: player.rotation
+        })
     }
     checkBounds(player)
+}
+
+function addPlayerCommand(gamePlayer, what, result) {
+    if (gamePlayer.executedCommands === undefined) {
+        gamePlayer.executedCommands = []
+    }
+    gamePlayer.executedCommands.push({
+        what: what,
+        result: result
+    })
 }
 
 function checkBounds(obj) {

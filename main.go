@@ -30,6 +30,11 @@ func NewPlayerLocation(bunny *room.Bunny) *PlayerLocation {
 	}
 }
 
+type WorldStateForPlayer struct {
+	Players map[string]*room.Bunny `json:"players"`
+	Commands []*monitor.Command `json:"commands"`
+}
+
 func main() {
 	conf := config.GetConfig()
 	logFinalizer, err := logger.InitLogger(conf.Logger)
@@ -128,13 +133,15 @@ func main() {
 
 func sendSnapshot(room *room.GameRoom, so socketio.Socket) {
 	room.Lock()
-	bytes, err := json.Marshal(room.Zoo.M)
+	bytes, err := json.Marshal(&WorldStateForPlayer{
+		Players: room.Zoo.M,
+		Commands: room.CommandMonitor.GetPlayerCommands(so.Id(), time.Now()),
+	})
 	room.Unlock()
 
 	if err != nil {
 		log.Println("Error marshal json")
 	}
 
-	//log.Println("Len = " + fmt.Sprint(len(commandMonitor.GetPlayerCommands(so.Id(), time.Now()))))
 	so.Emit("world_update", string(bytes))
 }
