@@ -4,6 +4,9 @@ const mapSize = 2000;
 const MAP_LOW_BOUND = 50;
 const MAP_HIGH_BOUND = 1950;
 
+const COMMAND_PLAYER_MOVE = "player_move";
+const COMMAND_PLAYER_ROTATION = "player_rotation";
+
 let game = new Phaser.Game(width, height, Phaser.CANVAS, 'area', { preload: preload, create: create, update: update, render: render });
 let socket;
 let players = {};
@@ -67,8 +70,6 @@ function create() {
     socket.on('world_update', function(data) {
         data = JSON.parse(data);
         let dataPlayers = data.players;
-        let currentPlayer = players[socket.id];
-        let t = 5;
         for (let playerId in dataPlayers) {
             if (playerId in players) {
                 players[playerId].player.visible = dataPlayers[playerId].isAlive;
@@ -188,16 +189,12 @@ function updateKilledPlayer(playerId) {
 
 function update() {
     if (live === true) {
-        let player = players[socket.id].player;
+        let gamePlayer = players[socket.id];
+        let player = gamePlayer.player;
         let newRotation = fixRotation(game.physics.arcade.angleToPointer(player));
         if (fixRotation(player.rotation) !== newRotation) {
             player.rotation = newRotation;
-            addPlayerCommand(players[socket.id], "player_rotation", {
-                x: player.x,
-                y: player.y,
-                rotation: player.rotation
-            });
-            socket.emit("player_rotation", String(player.rotation));
+            playerRotated(gamePlayer);
         }
         setCollisions();
         characterController();
@@ -206,6 +203,11 @@ function update() {
     for (let id in players) {
         players[id].text.x = Math.floor(players[id].player.x);
         players[id].text.y = Math.floor(players[id].player.y - 35);
+
+        //for debug mode
+        players[id].debugText.setText("Commands in History = " + players[id].executedCommands.length);
+        players[id].debugText.x = Math.floor(players[id].player.x);
+        players[id].debugText.y = Math.floor(players[id].player.y - 55);
     }
 }
 
@@ -233,52 +235,55 @@ function characterController() {
     let gamePlayer = players[socket.id];
     let player = gamePlayer.player;
     if (game.input.keyboard.isDown(Phaser.Keyboard.A) || keyboard.left.isDown) {
-        socket.emit("player_move", "A");
         player.x -= 2;
-        addPlayerCommand(gamePlayer, "player_move_A", {
-            x: player.x,
-            y: player.y,
-            rotation: player.rotation
-        })
+        playerMoved(gamePlayer, "A");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.D) || keyboard.right.isDown) {
-        socket.emit("player_move", "D");
         player.x += 2;
-        addPlayerCommand(gamePlayer, "player_move_D", {
-            x: player.x,
-            y: player.y,
-            rotation: player.rotation
-        })
+        playerMoved(gamePlayer, "D");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.W) || keyboard.up.isDown) {
-        socket.emit("player_move", "W");
         player.y -= 2;
-        addPlayerCommand(gamePlayer, "player_move_W", {
-            x: player.x,
-            y: player.y,
-            rotation: player.rotation
-        })
+        playerMoved(gamePlayer, "W");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.S) || keyboard.down.isDown) {
-        socket.emit("player_move", "S");
         player.y += 2;
-        addPlayerCommand(gamePlayer, "player_move_S", {
-            x: player.x,
-            y: player.y,
-            rotation: player.rotation
-        })
+        playerMoved(gamePlayer, "S");
     }
     checkBounds(player)
 }
 
+function playerMoved(gamePlayer, direction) {
+    socket.emit(COMMAND_PLAYER_MOVE, direction);
+    addMotionCommand(gamePlayer, COMMAND_PLAYER_MOVE + "_" + direction)
+}
+
+function playerRotated(gamePlayer) {
+    socket.emit(COMMAND_PLAYER_ROTATION, String(gamePlayer.player.rotation));
+    addMotionCommand(gamePlayer, COMMAND_PLAYER_ROTATION);
+}
+
+function addMotionCommand(gamePlayer, what) {
+    let player = gamePlayer.player;
+    addPlayerCommand(gamePlayer, what, {
+        x: player.x,
+        y: player.y,
+        rotation: player.rotation
+    })
+}
+
 function addPlayerCommand(gamePlayer, what, result) {
-    if (gamePlayer.executedCommands === undefined) {
-        gamePlayer.executedCommands = []
-    }
-    gamePlayer.executedCommands.push({
+    getExecutedCommands(gamePlayer).push({
         what: what,
         result: result
     })
+}
+
+function getExecutedCommands(gamePlayer) {
+    if (gamePlayer.executedCommands === undefined) {
+        gamePlayer.executedCommands = []
+    }
+    return gamePlayer.executedCommands
 }
 
 function checkBounds(obj) {
@@ -294,6 +299,7 @@ function render() {
 
 function addPlayer(playerObj) {
     let text = game.add.text(0, 0, playerObj.name, {font: '14px Arial', fill: '#ffffff'});
+    let debugText = game.add.text(0, 0, playerObj.name, {font: '14px Arial', fill: "#ffffff"});
     let weapon = game.add.weapon(30, 'bullet');
     let player = game.add.sprite(playerObj.x, playerObj.y, 'survivor_feet_walk');
     player.anchor.setTo(0.5, 0.5);
@@ -316,11 +322,12 @@ function addPlayer(playerObj) {
     player.id = playerObj.id;
 
     text.anchor.set(0.5);
+    debugText.anchor.set(0.5);
 
     weapon.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
     weapon.bulletSpeed = 600;
     weapon.fireRate = 100;
     weapon.trackSprite(player, 25, 14, true);
 
-    players[playerObj.id] = { player, weapon, text };
+    players[playerObj.id] = { player, weapon, text, debugText };
 }
