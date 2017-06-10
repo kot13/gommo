@@ -7,6 +7,7 @@ import (
 	"github.com/kot13/gommo/monitor"
 	"github.com/kot13/gommo/ticker"
 	"time"
+	"github.com/kot13/gommo/config"
 )
 
 const MAP_LOW_BOUND = 50
@@ -21,20 +22,20 @@ type GameRoom struct {
 	worldTicker *ticker.WorldTicker
 }
 
-func NewGameRoom(name string, updateWorldAction func(room *GameRoom, socket socketio.Socket)) *GameRoom {
+func NewGameRoom(name string, config config.RoomConfig, updateWorldAction func(room *GameRoom, socket socketio.Socket)) *GameRoom {
 	gameRoom := &GameRoom {
 		Name: name,
 		Zoo: &Zoo {
 			M: make(map[string]*Bunny),
 		},
-		CommandMonitor: monitor.NewCommandMonitor(),
+		CommandMonitor: monitor.NewCommandMonitor(config),
 		sockets: make(map[string]socketio.Socket),
 	}
 	gameRoom.worldTicker = ticker.NewWorldTicker(func() {
 		for _, socket := range gameRoom.sockets {
 			updateWorldAction(gameRoom, socket)
 		}
-	}, 40 * time.Millisecond)
+	}, time.Duration(config.RoomTickerPeriodMs) * time.Millisecond)
 	return gameRoom
 }
 

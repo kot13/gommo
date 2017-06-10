@@ -4,3 +4,7 @@ log_file = "/var/log/gommo/gommo.log"
 
 [app]
 app_port = ":8080"
+
+[room]
+command_stale_period_ms = 1000
+room_ticker_period_ms = 40

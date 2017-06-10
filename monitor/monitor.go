@@ -3,9 +3,8 @@ package monitor
 import (
 	"time"
 	"sync"
+	"github.com/kot13/gommo/config"
 )
-
-const STALE_PERIOD = time.Second
 
 type Command struct {
 	what string
@@ -21,17 +20,15 @@ func NewCommand(what string, when time.Time, result interface{}) *Command {
 	}
 }
 
-func (command *Command) isStale(currentTime time.Time) bool {
-	return currentTime.Sub(command.when) >= STALE_PERIOD
-}
-
 type CommandMonitor struct{
 	sync.RWMutex
+	stalePeriod time.Duration
 	commandMap map[string][]*Command
 }
 
-func NewCommandMonitor() *CommandMonitor {
+func NewCommandMonitor(config config.RoomConfig) *CommandMonitor {
 	return &CommandMonitor {
+		stalePeriod: time.Duration(config.CommandStalePeriodMs) * time.Millisecond,
 		commandMap: make(map[string][]*Command),
 	}
 }
@@ -55,11 +52,15 @@ func (monitor *CommandMonitor) deleteStaleCommands(playerId string, currentTime 
 	if ok {
 		i := 0
 		for _, command := range commands {
-			if !command.isStale(currentTime) {
+			if monitor.isCommandStale(currentTime, command) {
 				commands[i] = command
 				i++
 			}
 		}
 		monitor.commandMap[playerId] = commands[:i]
 	}
+}
+
+func (monitor *CommandMonitor) isCommandStale(currentTime time.Time, command *Command) bool {
+	return currentTime.Sub(command.when) < monitor.stalePeriod
 }

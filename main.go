@@ -30,8 +30,6 @@ func NewPlayerLocation(bunny *room.Bunny) *PlayerLocation {
 	}
 }
 
-var gameRoom *room.GameRoom = room.NewGameRoom("room", sendSnapshot)
-
 func main() {
 	conf := config.GetConfig()
 	logFinalizer, err := logger.InitLogger(conf.Logger)
@@ -42,6 +40,7 @@ func main() {
 
 	log.Info("start")
 
+	gameRoom := room.NewGameRoom("room", conf.Room, sendSnapshot)
 	http.Handle("/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
 
 	server, err := socketio.NewServer(nil)
