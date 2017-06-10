@@ -17,21 +17,21 @@ import (
 )
 
 type PlayerLocation struct {
-	X uint32 `json:"x"`
-	Y uint32 `json:"y"`
+	X        uint32 `json:"x"`
+	Y        uint32 `json:"y"`
 	Rotation float64 `json:"rotation"`
 }
 
-func NewPlayerLocation(bunny *room.Bunny) *PlayerLocation {
+func NewPlayerLocation(player *room.Player) *PlayerLocation {
 	return &PlayerLocation{
-		X: bunny.X,
-		Y: bunny.Y,
-		Rotation: bunny.Rotation,
+		X:        player.X,
+		Y:        player.Y,
+		Rotation: player.Rotation,
 	}
 }
 
 type WorldStateForPlayer struct {
-	Players map[string]*room.Bunny `json:"players"`
+	Players  map[string]*room.Player `json:"players"`
 	Commands []*monitor.Command `json:"commands"`
 }
 
@@ -60,63 +60,53 @@ func main() {
 		gameRoom.Connect(so)
 
 		so.On("join_new_player", func(playerName string) {
-			// СОЗДАЁМ КРОЛИКА
 			log.Println("Socket: " + so.Id() + ", NewPlayer: " + playerName)
-			bunny := room.NewBunny(so.Id(), playerName)
-			gameRoom.Zoo.Lock()
-			gameRoom.Zoo.M[so.Id()] = bunny
-			gameRoom.Zoo.Unlock()
+			player := room.NewPlayer(so.Id(), playerName)
+			gameRoom.Battlefield.Lock()
+			gameRoom.Battlefield.M[so.Id()] = player
+			gameRoom.Battlefield.Unlock()
 
 		})
 
-		// ЕСЛИ КРОЛИК ПОВЕРНУЛСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("player_rotation", func(rotation string) {
-			gameRoom.Zoo.Lock()
-			gameRoom.Zoo.M[so.Id()].Rotation, _ = strconv.ParseFloat(rotation, 64)
-			gameRoom.Zoo.Unlock()
+			gameRoom.Battlefield.Lock()
+			gameRoom.Battlefield.M[so.Id()].Rotation, _ = strconv.ParseFloat(rotation, 64)
+			gameRoom.Battlefield.Unlock()
 
 			curTime := time.Now()
-			gameRoom.CommandMonitor.Put(so.Id(), monitor.NewCommand("player_rotation", curTime, NewPlayerLocation(gameRoom.Zoo.M[so.Id()])), curTime)
+			gameRoom.CommandMonitor.Put(so.Id(), monitor.NewCommand("player_rotation", curTime, NewPlayerLocation(gameRoom.Battlefield.M[so.Id()])), curTime)
 		})
 
-		// ЕСЛИ КРОЛИК ДВИГАЕТСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("player_move", func(character string) {
-			gameRoom.Zoo.Lock()
-			bunny := gameRoom.Zoo.M[so.Id()]
+			gameRoom.Battlefield.Lock()
+			player := gameRoom.Battlefield.M[so.Id()]
 
 			switch character {
-			case "A":
-				bunny.X -= 2
-			case "S":
-				bunny.Y += 2
-			case "D":
-				bunny.X += 2
-			case "W":
-				bunny.Y -= 2
+			case "A": player.X -= 2
+			case "S": player.Y += 2
+			case "D": player.X += 2
+			case "W": player.Y -= 2
 			}
 
-			bunny.CheckBounds()
-			gameRoom.Zoo.Unlock()
+			player.CheckBounds()
+			gameRoom.Battlefield.Unlock()
 
 			curTime := time.Now()
-			gameRoom.CommandMonitor.Put(so.Id(), monitor.NewCommand("player_move_" + character, curTime, NewPlayerLocation(gameRoom.Zoo.M[so.Id()])), curTime)
+			gameRoom.CommandMonitor.Put(so.Id(), monitor.NewCommand("player_move_" + character, curTime, NewPlayerLocation(gameRoom.Battlefield.M[so.Id()])), curTime)
 		})
 
-		// ЕСЛИ КРОЛИК ВЫСТРЕЛИЛ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("shots_fired", func(id string) {
 			//TODO need to inject bullets on server
 			so.BroadcastTo("room", "player_fire_add", id)
 			so.Emit("player_fire_add", id)
 		})
 
-		// ЕСЛИ ПРОИЗОШЛО ПОПАДАНИЕ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("player_killed", func(victimId string) {
-			gameRoom.Zoo.Lock()
-			gameRoom.Zoo.M[victimId].IsAlive = false
-			gameRoom.Zoo.Unlock()
+			gameRoom.Battlefield.Lock()
+			gameRoom.Battlefield.M[victimId].IsAlive = false
+			gameRoom.Battlefield.Unlock()
 		})
 
-		// ОПОВЕЩАЕМ О ДИСКОНЕКТЕ
 		so.On("disconnection", func() {
 			log.Println("On disconnect: " + so.Id())
 			gameRoom.Disconnect(so)
@@ -134,7 +124,7 @@ func main() {
 func sendSnapshot(room *room.GameRoom, so socketio.Socket) {
 	room.Lock()
 	bytes, err := json.Marshal(&WorldStateForPlayer{
-		Players: room.Zoo.M,
+		Players:  room.Battlefield.M,
 		Commands: room.CommandMonitor.GetPlayerCommands(so.Id(), time.Now()),
 	})
 	room.Unlock()

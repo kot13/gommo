@@ -15,21 +15,21 @@ const MAP_HIGH_BOUND = 1950
 
 type GameRoom struct {
 	sync.RWMutex
-	Name string
-	Zoo *Zoo
+	Name           string
+	Battlefield    *Battlefield
 	CommandMonitor *monitor.CommandMonitor
-	sockets map[string]socketio.Socket
-	worldTicker *ticker.WorldTicker
+	sockets        map[string]socketio.Socket
+	worldTicker    *ticker.WorldTicker
 }
 
 func NewGameRoom(name string, config config.RoomConfig, updateWorldAction func(room *GameRoom, socket socketio.Socket)) *GameRoom {
-	gameRoom := &GameRoom {
+	gameRoom := &GameRoom{
 		Name: name,
-		Zoo: &Zoo {
-			M: make(map[string]*Bunny),
+		Battlefield: &Battlefield{
+			M: make(map[string]*Player),
 		},
 		CommandMonitor: monitor.NewCommandMonitor(config),
-		sockets: make(map[string]socketio.Socket),
+		sockets:        make(map[string]socketio.Socket),
 	}
 	gameRoom.worldTicker = ticker.NewWorldTicker(func() {
 		for _, socket := range gameRoom.sockets {
@@ -48,7 +48,7 @@ func (room *GameRoom) Connect(socket socketio.Socket) {
 func (room *GameRoom) Disconnect(socket socketio.Socket) {
 	room.updateConnection(func(room *GameRoom) {
 		delete(room.sockets, socket.Id())
-		delete(room.Zoo.M, socket.Id())
+		delete(room.Battlefield.M, socket.Id())
 	})
 }
 
@@ -69,45 +69,45 @@ func (room *GameRoom) updateWorldTimer(prevConnections int) {
 	}
 }
 
-type Zoo struct {
+type Battlefield struct {
 	sync.RWMutex
-	M map[string]*Bunny
+	M map[string]*Player
 }
 
-func (zoo *Zoo) PlayerCount() int {
-	zoo.Lock()
-	playerCount := len(zoo.M)
-	zoo.Unlock()
+func (battlefield *Battlefield) PlayerCount() int {
+	battlefield.Lock()
+	playerCount := len(battlefield.M)
+	battlefield.Unlock()
 	return playerCount
 }
 
-type Bunny struct {
-	Id      string `json:"id"`
-	X       uint32 `json:"x"`
-	Y       uint32 `json:"y"`
+type Player struct {
+	Id       string `json:"id"`
+	X        uint32 `json:"x"`
+	Y        uint32 `json:"y"`
 	Rotation float64 `json:"rotation"`
-	Name    string `json:"name"`
-	Width   uint32 `json:"wight"`
-	Height  uint32 `json:"height"`
-	IsAlive bool   `json:"isAlive"`
+	Name     string `json:"name"`
+	Width    uint32 `json:"wight"`
+	Height   uint32 `json:"height"`
+	IsAlive  bool   `json:"isAlive"`
 }
 
-func NewBunny(id string, playerName string) *Bunny {
-	return &Bunny{
-		Id:      id,
-		X:       uint32(rand.Intn(750)),
-		Y:       uint32(rand.Intn(750)),
+func NewPlayer(id string, playerName string) *Player {
+	return &Player{
+		Id:       id,
+		X:        uint32(rand.Intn(750)),
+		Y:        uint32(rand.Intn(750)),
 		Rotation: 0,
-		Name:    playerName,
-		Width:   32,
-		Height:  32,
-		IsAlive: true,
+		Name:     playerName,
+		Width:    32,
+		Height:   32,
+		IsAlive:  true,
 	}
 }
 
-func (bunny *Bunny) CheckBounds() {
-	if bunny.X < MAP_LOW_BOUND { bunny.X = MAP_LOW_BOUND }
-	if bunny.Y < MAP_LOW_BOUND { bunny.Y = MAP_LOW_BOUND }
-	if bunny.X > MAP_HIGH_BOUND { bunny.X = MAP_HIGH_BOUND }
-	if bunny.Y > MAP_HIGH_BOUND { bunny.Y = MAP_HIGH_BOUND }
+func (player *Player) CheckBounds() {
+	if player.X < MAP_LOW_BOUND { player.X = MAP_LOW_BOUND }
+	if player.Y < MAP_LOW_BOUND { player.Y = MAP_LOW_BOUND }
+	if player.X > MAP_HIGH_BOUND { player.X = MAP_HIGH_BOUND }
+	if player.Y > MAP_HIGH_BOUND { player.Y = MAP_HIGH_BOUND }
 }

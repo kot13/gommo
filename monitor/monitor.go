@@ -7,29 +7,29 @@ import (
 )
 
 type Command struct {
-	What string `json:"what"`
-	When time.Time `json:"when"`
+	What   string `json:"what"`
+	When   time.Time `json:"when"`
 	Result interface{} `json:"result"`
 }
 
 func NewCommand(what string, when time.Time, result interface{}) *Command {
 	return &Command{
-		What: what,
-		When: when,
+		What:   what,
+		When:   when,
 		Result: result,
 	}
 }
 
-type CommandMonitor struct{
+type CommandMonitor struct {
 	sync.RWMutex
 	stalePeriod time.Duration
-	commandMap map[string][]*Command
+	commandMap  map[string][]*Command
 }
 
 func NewCommandMonitor(config config.RoomConfig) *CommandMonitor {
-	return &CommandMonitor {
+	return &CommandMonitor{
 		stalePeriod: time.Duration(config.CommandStalePeriodMs) * time.Millisecond,
-		commandMap: make(map[string][]*Command),
+		commandMap:  make(map[string][]*Command),
 	}
 }
 
@@ -43,6 +43,7 @@ func (monitor *CommandMonitor) Put(playerId string, command *Command, currentTim
 func (monitor *CommandMonitor) GetPlayerCommands(playerId string, currentTime time.Time) []*Command {
 	monitor.Lock()
 	defer monitor.Unlock()
+
 	monitor.deleteStaleCommands(playerId, currentTime)
 	return append([]*Command(nil), monitor.commandMap[playerId]...)
 }

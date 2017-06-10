@@ -6,12 +6,12 @@ import (
 )
 
 type WorldTicker struct {
-	socket socketio.Socket
-	action func()
+	socket         socketio.Socket
+	action         func()
 	updateDuration time.Duration
 
 	performer *time.Ticker
-	quit chan struct{}
+	quit      chan struct{}
 }
 
 func NewWorldTicker(whatFunc func(), updateDuration time.Duration) *WorldTicker {
@@ -28,9 +28,9 @@ func (ticker *WorldTicker) Start() {
 	go func() {
 		for {
 			select {
-			case <- ticker.performer.C:
+			case <-ticker.performer.C:
 				ticker.action()
-			case <- ticker.quit:
+			case <-ticker.quit:
 				ticker.performer.Stop()
 				return
 			}
