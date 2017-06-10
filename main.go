@@ -13,6 +13,7 @@ import (
 	"github.com/kot13/gommo/config"
 	"github.com/kot13/gommo/logger"
 	log "github.com/Sirupsen/logrus"
+	"fmt"
 )
 
 type Zoo struct {
@@ -44,8 +45,26 @@ func NewBunny(id string, playerName string) *Bunny {
 	}
 }
 
+type PlayerLocation struct {
+	X uint32 `json:"x"`
+	Y uint32 `json:"y"`
+	Rotation float64 `json:"rotation"`
+}
+
+func NewPlayerLocation(bunny *Bunny) *PlayerLocation {
+	return &PlayerLocation{
+		X: bunny.X,
+		Y: bunny.Y,
+		Rotation: bunny.Rotation,
+	}
+}
+
 var zoo Zoo = Zoo{
 	m: make(map[string]*Bunny),
+}
+
+var commandMonitor CommandMonitor = CommandMonitor{
+	commandMap: make(map[string][]*Command),
 }
 
 const MAP_LOW_BOUND = 50
@@ -71,7 +90,7 @@ func main() {
 	}
 
 	server.On("connection", func(so socketio.Socket) {
-		log.Println("On connection: " + so.Id())
+		log.Println("On connection: " + so.Id() + " - " + fmt.Sprint(&so))
 
 		worldTimer = NewWorldTimer(so, sendSnapshot, 40 * time.Millisecond)
 		so.Join("room")
@@ -85,6 +104,7 @@ func main() {
 			zoo.m[so.Id()] = bunny
 			zoo.Unlock()
 
+			log.Println("Socket: " + so.Id() + ", NewPlayer: " + playerName)
 			updateWorldTimer(prevPlayerCount)
 		})
 
@@ -93,6 +113,9 @@ func main() {
 			zoo.Lock()
 			zoo.m[so.Id()].Rotation, _ = strconv.ParseFloat(rotation, 64)
 			zoo.Unlock()
+
+			curTime := time.Now()
+			commandMonitor.Put(so.Id(), NewCommand("player_rotation", curTime, NewPlayerLocation(zoo.m[so.Id()])), curTime)
 		})
 
 		// ЕСЛИ КРОЛИК ДВИГАЕТСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
@@ -113,6 +136,9 @@ func main() {
 
 			bunny.checkBounds()
 			zoo.Unlock()
+
+			curTime := time.Now()
+			commandMonitor.Put(so.Id(), NewCommand("player_move_" + character, curTime, NewPlayerLocation(zoo.m[so.Id()])), curTime)
 		})
 
 		// ЕСЛИ КРОЛИК ВЫСТРЕЛИЛ ОПОВЕЩАЕМ КЛИЕНТОВ
@@ -181,6 +207,7 @@ func sendSnapshot(so socketio.Socket) {
 		log.Println("Error marshal json")
 	}
 
+	//log.Println("Len = " + fmt.Sprint(len(commandMonitor.GetPlayerCommands(so.Id(), time.Now()))))
 	sendToAll(so, "room", "world_update", string(bytes))
 }
 

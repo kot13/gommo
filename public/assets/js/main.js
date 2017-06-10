@@ -113,7 +113,6 @@ function updatePlayerRotation(gamePlayer, dataPlayer) {
         player.rotation = Number(dataPlayer.rotation)
     } else {
         let degrees = player.angle + delta;
-        console.log(delta);
         gamePlayer.rotationTween = game.add.tween(player).to({angle: degrees}, Math.abs(delta), Phaser.Easing.Linear.None);
         gamePlayer.rotationTween.start()
     }
@@ -154,8 +153,11 @@ function updateKilledPlayer(playerId) {
 
 function update() {
     if (live === true) {
-        players[socket.id].player.rotation = game.physics.arcade.angleToPointer(players[socket.id].player);
-        socket.emit("player_rotation", String(players[socket.id].player.rotation));
+        let newRotation = fixRotation(game.physics.arcade.angleToPointer(players[socket.id].player));
+        if (fixRotation(players[socket.id].player.rotation) !== newRotation) {
+            players[socket.id].player.rotation = newRotation;
+            socket.emit("player_rotation", String(players[socket.id].player.rotation));
+        }
         setCollisions();
         characterController();
     }
@@ -164,6 +166,10 @@ function update() {
         players[id].text.x = Math.floor(players[id].player.x);
         players[id].text.y = Math.floor(players[id].player.y - 35);
     }
+}
+
+function fixRotation(rotation) {
+    return Math.round(rotation * 10000) / 10000
 }
 
 function bulletHitHandler(player, bullet) {
