@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"math/rand"
 	"net/http"
-	"sync"
 	"time"
 	"strconv"
 
@@ -12,38 +10,11 @@ import (
 	"github.com/googollee/go-socket.io"
 	"github.com/kot13/gommo/config"
 	"github.com/kot13/gommo/logger"
+	"github.com/kot13/gommo/room"
 	log "github.com/Sirupsen/logrus"
 	"fmt"
+	"github.com/kot13/gommo/monitor"
 )
-
-type Zoo struct {
-	sync.RWMutex
-	m map[string]*Bunny
-}
-
-type Bunny struct {
-	Id      string `json:"id"`
-	X       uint32 `json:"x"`
-	Y       uint32 `json:"y"`
-	Rotation float64 `json:"rotation"`
-	Name    string `json:"name"`
-	Width   uint32 `json:"wight"`
-	Height  uint32 `json:"height"`
-	IsAlive bool   `json:"isAlive"`
-}
-
-func NewBunny(id string, playerName string) *Bunny {
-	return &Bunny{
-		Id:      id,
-		X:       uint32(rand.Intn(750)),
-		Y:       uint32(rand.Intn(750)),
-		Rotation: 0,
-		Name:    playerName,
-		Width:   32,
-		Height:  32,
-		IsAlive: true,
-	}
-}
 
 type PlayerLocation struct {
 	X uint32 `json:"x"`
@@ -51,7 +22,7 @@ type PlayerLocation struct {
 	Rotation float64 `json:"rotation"`
 }
 
-func NewPlayerLocation(bunny *Bunny) *PlayerLocation {
+func NewPlayerLocation(bunny *room.Bunny) *PlayerLocation {
 	return &PlayerLocation{
 		X: bunny.X,
 		Y: bunny.Y,
@@ -59,18 +30,7 @@ func NewPlayerLocation(bunny *Bunny) *PlayerLocation {
 	}
 }
 
-var zoo Zoo = Zoo{
-	m: make(map[string]*Bunny),
-}
-
-var commandMonitor CommandMonitor = CommandMonitor{
-	commandMap: make(map[string][]*Command),
-}
-
-const MAP_LOW_BOUND = 50
-const MAP_HIGH_BOUND = 1950
-
-var worldTimer *WorldTimer
+var gameRoom *room.GameRoom = room.NewGameRoom("room", sendSnapshot)
 
 func main() {
 	conf := config.GetConfig()
@@ -92,36 +52,33 @@ func main() {
 	server.On("connection", func(so socketio.Socket) {
 		log.Println("On connection: " + so.Id() + " - " + fmt.Sprint(&so))
 
-		worldTimer = NewWorldTimer(so, sendSnapshot, 40 * time.Millisecond)
-		so.Join("room")
+		so.Join(gameRoom.Name)
+		gameRoom.Connect(so)
 
 		so.On("join_new_player", func(playerName string) {
-			prevPlayerCount := zoo.playerCount()
-
 			// СОЗДАЁМ КРОЛИКА
-			bunny := NewBunny(so.Id(), playerName)
-			zoo.Lock()
-			zoo.m[so.Id()] = bunny
-			zoo.Unlock()
-
 			log.Println("Socket: " + so.Id() + ", NewPlayer: " + playerName)
-			updateWorldTimer(prevPlayerCount)
+			bunny := room.NewBunny(so.Id(), playerName)
+			gameRoom.Zoo.Lock()
+			gameRoom.Zoo.M[so.Id()] = bunny
+			gameRoom.Zoo.Unlock()
+
 		})
 
 		// ЕСЛИ КРОЛИК ПОВЕРНУЛСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("player_rotation", func(rotation string) {
-			zoo.Lock()
-			zoo.m[so.Id()].Rotation, _ = strconv.ParseFloat(rotation, 64)
-			zoo.Unlock()
+			gameRoom.Zoo.Lock()
+			gameRoom.Zoo.M[so.Id()].Rotation, _ = strconv.ParseFloat(rotation, 64)
+			gameRoom.Zoo.Unlock()
 
 			curTime := time.Now()
-			commandMonitor.Put(so.Id(), NewCommand("player_rotation", curTime, NewPlayerLocation(zoo.m[so.Id()])), curTime)
+			gameRoom.CommandMonitor.Put(so.Id(), monitor.NewCommand("player_rotation", curTime, NewPlayerLocation(gameRoom.Zoo.M[so.Id()])), curTime)
 		})
 
 		// ЕСЛИ КРОЛИК ДВИГАЕТСЯ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("player_move", func(character string) {
-			zoo.Lock()
-			bunny := zoo.m[so.Id()]
+			gameRoom.Zoo.Lock()
+			bunny := gameRoom.Zoo.M[so.Id()]
 
 			switch character {
 			case "A":
@@ -134,36 +91,31 @@ func main() {
 				bunny.Y -= 2
 			}
 
-			bunny.checkBounds()
-			zoo.Unlock()
+			bunny.CheckBounds()
+			gameRoom.Zoo.Unlock()
 
 			curTime := time.Now()
-			commandMonitor.Put(so.Id(), NewCommand("player_move_" + character, curTime, NewPlayerLocation(zoo.m[so.Id()])), curTime)
+			gameRoom.CommandMonitor.Put(so.Id(), monitor.NewCommand("player_move_" + character, curTime, NewPlayerLocation(gameRoom.Zoo.M[so.Id()])), curTime)
 		})
 
 		// ЕСЛИ КРОЛИК ВЫСТРЕЛИЛ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("shots_fired", func(id string) {
+			//TODO need to inject bullets on server
 			so.BroadcastTo("room", "player_fire_add", id)
 			so.Emit("player_fire_add", id)
 		})
 
 		// ЕСЛИ ПРОИЗОШЛО ПОПАДАНИЕ ОПОВЕЩАЕМ КЛИЕНТОВ
 		so.On("player_killed", func(victimId string) {
-			zoo.Lock()
-			zoo.m[victimId].IsAlive = false
-			zoo.Unlock()
+			gameRoom.Zoo.Lock()
+			gameRoom.Zoo.M[victimId].IsAlive = false
+			gameRoom.Zoo.Unlock()
 		})
 
 		// ОПОВЕЩАЕМ О ДИСКОНЕКТЕ
 		so.On("disconnection", func() {
-			prevPlayerCount := zoo.playerCount()
-
 			log.Println("On disconnect: " + so.Id())
-			zoo.Lock()
-			delete(zoo.m, so.Id())
-			zoo.Unlock()
-
-			updateWorldTimer(prevPlayerCount)
+			gameRoom.Disconnect(so)
 		})
 	})
 
@@ -175,43 +127,15 @@ func main() {
 	}
 }
 
-func (bunny *Bunny) checkBounds() {
-	if bunny.X < MAP_LOW_BOUND { bunny.X = MAP_LOW_BOUND }
-	if bunny.Y < MAP_LOW_BOUND { bunny.Y = MAP_LOW_BOUND }
-	if bunny.X > MAP_HIGH_BOUND { bunny.X = MAP_HIGH_BOUND }
-	if bunny.Y > MAP_HIGH_BOUND { bunny.Y = MAP_HIGH_BOUND }
-}
-
-func (zoo *Zoo) playerCount() int {
-	zoo.Lock()
-	playerCount := len(zoo.m)
-	zoo.Unlock()
-	return playerCount
-}
-
-func updateWorldTimer(prevPlayerCount int) {
-	playerCount := zoo.playerCount()
-	if playerCount == 0 && prevPlayerCount != 0 {
-		worldTimer.Stop()
-	} else if playerCount != 0 && prevPlayerCount == 0 {
-		worldTimer.Start()
-	}
-}
-
-func sendSnapshot(so socketio.Socket) {
-	zoo.Lock()
-	bytes, err := json.Marshal(zoo.m)
-	zoo.Unlock()
+func sendSnapshot(room *room.GameRoom, so socketio.Socket) {
+	room.Lock()
+	bytes, err := json.Marshal(room.Zoo.M)
+	room.Unlock()
 
 	if err != nil {
 		log.Println("Error marshal json")
 	}
 
 	//log.Println("Len = " + fmt.Sprint(len(commandMonitor.GetPlayerCommands(so.Id(), time.Now()))))
-	sendToAll(so, "room", "world_update", string(bytes))
-}
-
-func sendToAll(so socketio.Socket, room, event string, args ...interface{}) {
-	so.BroadcastTo(room, event, args...)
-	so.Emit(event, args...)
+	so.Emit("world_update", string(bytes))
 }

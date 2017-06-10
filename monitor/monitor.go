@@ -1,4 +1,4 @@
-package main
+package monitor
 
 import (
 	"time"
@@ -28,6 +28,12 @@ func (command *Command) isStale(currentTime time.Time) bool {
 type CommandMonitor struct{
 	sync.RWMutex
 	commandMap map[string][]*Command
+}
+
+func NewCommandMonitor() *CommandMonitor {
+	return &CommandMonitor {
+		commandMap: make(map[string][]*Command),
+	}
 }
 
 func (monitor *CommandMonitor) Put(playerId string, command *Command, currentTime time.Time) {
