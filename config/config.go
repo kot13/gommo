@@ -29,7 +29,7 @@ type RoomConfig struct {
 }
 
 func init() {
-	fileName := flag.String("c", "config-local.toml", "config file name")
+	fileName := flag.String("c", "config.toml", "config file name")
 
 	flag.Parse()
 	_, err := toml.DecodeFile(*fileName, &cfg)
