@@ -74,6 +74,9 @@ function create() {
             if (playerId in players) {
                 players[playerId].player.visible = dataPlayers[playerId].isAlive;
                 players[playerId].text.visible = dataPlayers[playerId].isAlive;
+                if (players[playerId].debugText !== undefined) {
+                    players[playerId].debugText.visible = dataPlayers[playerId].isAlive;
+                }
 
                 if (dataPlayers[playerId].isAlive) {
                     let lastCommand = data.commands[data.commands.length-1];
@@ -198,16 +201,19 @@ function update() {
         }
         setCollisions();
         characterController();
+
+        //for debug mode
+        let debugText = gamePlayer.debugText;
+        if (debugText !== undefined) {
+            debugText.setText("Commands in History = " + gamePlayer.executedCommands.length);
+            debugText.x = Math.floor(player.x);
+            debugText.y = Math.floor(player.y - 55);
+        }
     }
 
     for (let id in players) {
         players[id].text.x = Math.floor(players[id].player.x);
         players[id].text.y = Math.floor(players[id].player.y - 35);
-
-        //for debug mode
-        players[id].debugText.setText("Commands in History = " + players[id].executedCommands.length);
-        players[id].debugText.x = Math.floor(players[id].player.x);
-        players[id].debugText.y = Math.floor(players[id].player.y - 55);
     }
 }
 
@@ -299,7 +305,6 @@ function render() {
 
 function addPlayer(playerObj) {
     let text = game.add.text(0, 0, playerObj.name, {font: '14px Arial', fill: '#ffffff'});
-    let debugText = game.add.text(0, 0, playerObj.name, {font: '14px Arial', fill: "#ffffff"});
     let weapon = game.add.weapon(30, 'bullet');
     let player = game.add.sprite(playerObj.x, playerObj.y, 'survivor_feet_walk');
     player.anchor.setTo(0.5, 0.5);
@@ -322,12 +327,18 @@ function addPlayer(playerObj) {
     player.id = playerObj.id;
 
     text.anchor.set(0.5);
-    debugText.anchor.set(0.5);
 
     weapon.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
     weapon.bulletSpeed = 600;
     weapon.fireRate = 100;
     weapon.trackSprite(player, 25, 14, true);
 
-    players[playerObj.id] = { player, weapon, text, debugText };
+    players[playerObj.id] = { player, weapon, text };
+
+    //temporary added for debug purposes
+    if (playerObj.id === socket.id) {
+        let debugText = game.add.text(0, 0, playerObj.name, {font: '14px Arial', fill: "#ffffff"});
+        debugText.anchor.set(0.5);
+        players[playerObj.id].debugText = debugText
+    }
 }
