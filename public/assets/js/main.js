@@ -4,9 +4,6 @@ const mapSize = 2000;
 const MAP_LOW_BOUND = 50;
 const MAP_HIGH_BOUND = 1950;
 
-const COMMAND_PLAYER_MOVE = "player_move";
-const COMMAND_PLAYER_ROTATION = "player_rotation";
-
 let game = new Phaser.Game(width, height, Phaser.CANVAS, 'area', { preload: preload, create: create, update: update, render: render });
 let socket;
 let players = {};
@@ -16,6 +13,7 @@ let keyboard;
 let explosion;
 
 function preload() {
+    make();
     game.load.audio('explosion', '/assets/audio/explosion.mp3');
     game.load.image('unit', '/assets/images/unit.png');
     game.load.image('bullet', '/assets/images/bullet.png');
@@ -81,12 +79,7 @@ function create() {
                 if (dataPlayers[playerId].isAlive) {
                     let lastCommand = data.commands[data.commands.length-1];
                     if (playerId === socket.id) {
-                        if (!checkCommandAlreadyExecuted(players[playerId], lastCommand)) {
-                            updatePlayerRotation(players[playerId], dataPlayers[playerId]);
-                            updatePlayerPosition(players[playerId], dataPlayers[playerId]);
-                        }
-
-                        players[playerId].lastServerCommand = lastCommand.when
+                        checkPredictions(players[playerId], dataPlayers[playerId], lastCommand);
                     } else {
                         updatePlayerRotation(players[playerId], dataPlayers[playerId]);
                         updatePlayerPosition(players[playerId], dataPlayers[playerId]);
@@ -120,70 +113,6 @@ function create() {
     });
 }
 
-function checkCommandAlreadyExecuted(gamePlayer, dataCommand) {
-    if (gamePlayer.lastServerCommand !== undefined &&
-        gamePlayer.lastServerCommand === dataCommand.when) {
-        return true;
-    } else {
-        let gamePlayerCommands = gamePlayer.executedCommands;
-        for (let i = 0; i < gamePlayerCommands.length; i++) {
-            if ((gamePlayerCommands[i].what === dataCommand.what &&
-                isResultEqual(gamePlayerCommands[i].result, dataCommand.result))) {
-                gamePlayerCommands.splice(0, i + 1);
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-function isResultEqual(result1, result2) {
-    return result1.x === result2.x && result1.y === result2.y && fixRotation(result1.rotation) === fixRotation(result2.rotation)
-}
-
-function updatePlayerRotation(gamePlayer, dataPlayer) {
-    if (gamePlayer.rotationTween !== undefined) {
-        gamePlayer.rotationTween.stop();
-    }
-
-    let player = gamePlayer.player;
-    let delta = getShortestAngle(Phaser.Math.radToDeg(dataPlayer.rotation), player.angle);
-    if (Math.abs(delta) <= 5) {
-        player.rotation = Number(dataPlayer.rotation)
-    } else {
-        let degrees = player.angle + delta;
-        gamePlayer.rotationTween = game.add.tween(player).to({angle: degrees}, Math.abs(delta), Phaser.Easing.Linear.None);
-        gamePlayer.rotationTween.start()
-    }
-}
-
-function getShortestAngle(angle1, angle2) {
-    let difference = angle2 - angle1;
-    let times = Math.floor((difference - (-180)) / 360);
-
-    return (difference - (times * 360)) * -1;
-}
-
-function updatePlayerPosition(gamePlayer, dataPlayer) {
-    if (gamePlayer.movementTween !== undefined) {
-        gamePlayer.movementTween.stop();
-    }
-
-    let dataPlayerX = Number(dataPlayer.x);
-    let dataPlayerY = Number(dataPlayer.y);
-    let player = gamePlayer.player;
-    let deltaX = dataPlayerX - player.x;
-    let deltaY = dataPlayerY - player.y;
-    let distance = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
-    if (distance <= 4) {
-        player.x = dataPlayerX;
-        player.y = dataPlayerY;
-    } else {
-        gamePlayer.movementTween = game.add.tween(player).to({x: dataPlayerX, y: dataPlayerY}, 5 * distance , Phaser.Easing.Linear.None);
-        gamePlayer.movementTween.start()
-    }
-}
-
 function updateKilledPlayer(playerId) {
     players[playerId].player.kill();
     players[playerId].text.destroy();
@@ -197,7 +126,7 @@ function update() {
         let newRotation = fixRotation(game.physics.arcade.angleToPointer(player));
         if (fixRotation(player.rotation) !== newRotation) {
             player.rotation = newRotation;
-            playerRotated(gamePlayer);
+            notifyPlayerRotated(gamePlayer);
         }
         setCollisions();
         characterController();
@@ -242,54 +171,21 @@ function characterController() {
     let player = gamePlayer.player;
     if (game.input.keyboard.isDown(Phaser.Keyboard.A) || keyboard.left.isDown) {
         player.x -= 2;
-        playerMoved(gamePlayer, "A");
+        notifyPlayerMoved(gamePlayer, "A");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.D) || keyboard.right.isDown) {
         player.x += 2;
-        playerMoved(gamePlayer, "D");
+        notifyPlayerMoved(gamePlayer, "D");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.W) || keyboard.up.isDown) {
         player.y -= 2;
-        playerMoved(gamePlayer, "W");
+        notifyPlayerMoved(gamePlayer, "W");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.S) || keyboard.down.isDown) {
         player.y += 2;
-        playerMoved(gamePlayer, "S");
+        notifyPlayerMoved(gamePlayer, "S");
     }
     checkBounds(player)
-}
-
-function playerMoved(gamePlayer, direction) {
-    socket.emit(COMMAND_PLAYER_MOVE, direction);
-    addMotionCommand(gamePlayer, COMMAND_PLAYER_MOVE + "_" + direction)
-}
-
-function playerRotated(gamePlayer) {
-    socket.emit(COMMAND_PLAYER_ROTATION, String(gamePlayer.player.rotation));
-    addMotionCommand(gamePlayer, COMMAND_PLAYER_ROTATION);
-}
-
-function addMotionCommand(gamePlayer, what) {
-    let player = gamePlayer.player;
-    addPlayerCommand(gamePlayer, what, {
-        x: player.x,
-        y: player.y,
-        rotation: player.rotation
-    })
-}
-
-function addPlayerCommand(gamePlayer, what, result) {
-    getExecutedCommands(gamePlayer).push({
-        what: what,
-        result: result
-    })
-}
-
-function getExecutedCommands(gamePlayer) {
-    if (gamePlayer.executedCommands === undefined) {
-        gamePlayer.executedCommands = []
-    }
-    return gamePlayer.executedCommands
 }
 
 function checkBounds(obj) {
