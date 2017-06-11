@@ -4,18 +4,22 @@ function checkPredictions(gamePlayer, dataPlayer, dataCommand) {
         updatePlayerPosition(gamePlayer, dataPlayer);
     }
 
-    gamePlayer.lastServerCommand = dataCommand.when
+    if (dataCommand !== undefined) {
+        gamePlayer.lastServerCommand = dataCommand.when
+    }
 }
 
 function checkCommandAlreadyExecuted(gamePlayer, dataCommand) {
-    if (gamePlayer.lastServerCommand !== undefined &&
+    if (dataCommand === undefined) {
+        return false;
+    } else if (gamePlayer.lastServerCommand !== undefined &&
         gamePlayer.lastServerCommand === dataCommand.when) {
         return true;
     } else {
         let gamePlayerCommands = gamePlayer.executedCommands;
         for (let i = 0; i < gamePlayerCommands.length; i++) {
             if ((gamePlayerCommands[i].what === dataCommand.what &&
-                isResultEqual(gamePlayerCommands[i].result, dataCommand.result))) {
+                isCommandDataEqual(gamePlayerCommands[i].result, dataCommand.result))) {
                 gamePlayerCommands.splice(0, i + 1);
                 return true;
             }
@@ -24,8 +28,8 @@ function checkCommandAlreadyExecuted(gamePlayer, dataCommand) {
     }
 }
 
-function isResultEqual(result1, result2) {
-    return result1.x === result2.x && result1.y === result2.y && fixRotation(result1.rotation) === fixRotation(result2.rotation)
+function isCommandDataEqual(data1, data2) {
+    return data1.x === data2.x && data1.y === data2.y && fixRotation(data1.rotation) === fixRotation(data2.rotation)
 }
 
 function updatePlayerRotation(gamePlayer, dataPlayer) {

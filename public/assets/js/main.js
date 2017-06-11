@@ -13,7 +13,6 @@ let keyboard;
 let explosion;
 
 function preload() {
-    make();
     game.load.audio('explosion', '/assets/audio/explosion.mp3');
     game.load.image('unit', '/assets/images/unit.png');
     game.load.image('bullet', '/assets/images/bullet.png');
@@ -77,8 +76,12 @@ function create() {
                 }
 
                 if (dataPlayers[playerId].isAlive) {
-                    let lastCommand = data.commands[data.commands.length-1];
                     if (playerId === socket.id) {
+                        let lastCommand = undefined;
+                        if (data.commands !== undefined && data.commands !== null && data.commands.length > 0) {
+                            lastCommand = data.commands[data.commands.length-1];
+                        }
+
                         checkPredictions(players[playerId], dataPlayers[playerId], lastCommand);
                     } else {
                         updatePlayerRotation(players[playerId], dataPlayers[playerId]);
@@ -170,22 +173,27 @@ function characterController() {
     let gamePlayer = players[socket.id];
     let player = gamePlayer.player;
     if (game.input.keyboard.isDown(Phaser.Keyboard.A) || keyboard.left.isDown) {
-        player.x -= 2;
+        changePlayerPosition(player, "x", -2);
         notifyPlayerMoved(gamePlayer, "A");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.D) || keyboard.right.isDown) {
-        player.x += 2;
+        changePlayerPosition(player, "x", 2);
         notifyPlayerMoved(gamePlayer, "D");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.W) || keyboard.up.isDown) {
-        player.y -= 2;
+        changePlayerPosition(player, "y", -2);
         notifyPlayerMoved(gamePlayer, "W");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.S) || keyboard.down.isDown) {
-        player.y += 2;
+        changePlayerPosition(player, "y", 2);
         notifyPlayerMoved(gamePlayer, "S");
     }
     checkBounds(player)
+}
+
+function changePlayerPosition(player, field, delta) {
+    player[field] += delta;
+    checkBounds(player);
 }
 
 function checkBounds(obj) {
