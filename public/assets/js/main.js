@@ -1,6 +1,8 @@
 const width = window.innerWidth;
 const height = window.innerHeight;
 const mapSize = 2000;
+const MAP_LOW_BOUND = 50;
+const MAP_HIGH_BOUND = 1950;
 
 let game = new Phaser.Game(width, height, Phaser.CANVAS, 'area', { preload: preload, create: create, update: update, render: render });
 let socket;
@@ -40,34 +42,14 @@ function create() {
     explosion = game.add.audio('explosion');
 
     //получаем имя игрока
-    let playerName = prompt("Please enter your name", "guest");
+    let savedName = window.localStorage.getItem("player_name");
+    if (!savedName) savedName = "guest";
+
+    let playerName = prompt("Please enter your name", savedName);
+    if (!playerName) playerName = "";
+    window.localStorage.setItem("player_name", playerName);
+
     socket.emit("join_new_player", playerName);
-
-    //создаем игроков
-    socket.on("add_players", function(data) {
-        data = JSON.parse(data);
-        for (let playerId in data) {
-            if (!(playerId in players) && data[playerId].isAlive) {
-                addPlayer(playerId, data[playerId].x, data[playerId].y, data[playerId].name);
-            }
-        }
-
-        game.camera.follow(players[socket.id].player);
-        live = true;
-    });
-
-    //вращение вокруг по событию от сервера
-    socket.on("player_rotation_update", function(data) {
-        data = JSON.parse(data);
-        players[data.id].player.rotation = data.rotation;
-    });
-
-    //обновляем положение игроков
-    socket.on("player_position_update", function(data) {
-        data = JSON.parse(data);
-        players[data.id].player.x += Number(data.x);
-        players[data.id].player.y += Number(data.y);
-    });
 
     //вызываем выстрелы
     game.input.onDown.add(function() {
@@ -82,44 +64,93 @@ function create() {
         }
     });
 
-    //смерть от выстрелов
-    socket.on('clean_dead_player', function(victimId) {
-        if (victimId === socket.id) {
-            live = false;
-            let text = game.add.text(width / 2, height / 2, "You lose!", {font: "32px Arial", fill: "#ffffff", align: "center"});
-            text.fixedToCamera = true;
-            text.anchor.setTo(.5, .5);
+    socket.on('world_update', function(data) {
+        data = JSON.parse(data);
+        let dataPlayers = data.players;
+        for (let playerId in dataPlayers) {
+            if (playerId in players) {
+                players[playerId].player.visible = dataPlayers[playerId].isAlive;
+                players[playerId].text.visible = dataPlayers[playerId].isAlive;
+                if (players[playerId].debugText !== undefined) {
+                    players[playerId].debugText.visible = dataPlayers[playerId].isAlive;
+                }
+
+                if (dataPlayers[playerId].isAlive) {
+                    if (playerId === socket.id) {
+                        let lastCommand = undefined;
+                        if (data.commands !== undefined && data.commands !== null && data.commands.length > 0) {
+                            lastCommand = data.commands[data.commands.length-1];
+                        }
+
+                        checkPredictions(players[playerId], dataPlayers[playerId], lastCommand);
+                    } else {
+                        updatePlayerRotation(players[playerId], dataPlayers[playerId]);
+                        updatePlayerPosition(players[playerId], dataPlayers[playerId]);
+                    }
+
+                } else {
+                    if (playerId === socket.id && live) {
+                        live = false;
+                        let text = game.add.text(width / 2, height / 2, "You lose!", {font: "32px Arial", fill: "#ffffff", align: "center"});
+                        text.fixedToCamera = true;
+                        text.anchor.setTo(.5, .5);
+                    }
+                }
+            } else {
+                if (dataPlayers[playerId].isAlive) {
+                    addPlayer(dataPlayers[playerId]);
+
+                    if (playerId === socket.id) {
+                        game.camera.follow(players[socket.id].player);
+                        live = true;
+                    }
+                }
+            }
         }
 
-        if (victimId in players) {
-            players[victimId].player.kill();
-            players[victimId].text.destroy();
-            delete players[victimId];
-        }
-    });
-
-    //убираем отключившихся игроков
-    socket.on('player_disconnect', function(id) {
-        if (id in players) {
-            players[id].player.kill();
-            players[id].text.destroy();
-            delete players[id];
+        for (let playerId in players) {
+            if (!(playerId in dataPlayers)) {
+                updateKilledPlayer(playerId)
+            }
         }
     });
 }
 
+function updateKilledPlayer(playerId) {
+    players[playerId].player.kill();
+    players[playerId].text.destroy();
+    delete players[playerId];
+}
+
 function update() {
     if (live === true) {
-        players[socket.id].player.rotation = game.physics.arcade.angleToPointer(players[socket.id].player);
-        socket.emit("player_rotation", String(players[socket.id].player.rotation));
+        let gamePlayer = players[socket.id];
+        let player = gamePlayer.player;
+        let newRotation = fixRotation(game.physics.arcade.angleToPointer(player));
+        if (fixRotation(player.rotation) !== newRotation) {
+            player.rotation = newRotation;
+            notifyPlayerRotated(gamePlayer);
+        }
         setCollisions();
         characterController();
+
+        //for debug mode
+        let debugText = gamePlayer.debugText;
+        if (debugText !== undefined) {
+            debugText.setText("Commands in History = " + gamePlayer.executedCommands.length);
+            debugText.x = Math.floor(player.x);
+            debugText.y = Math.floor(player.y - 55);
+        }
     }
 
     for (let id in players) {
         players[id].text.x = Math.floor(players[id].player.x);
-        players[id].text.y = Math.floor(players[id].player.y - 25);
+        players[id].text.y = Math.floor(players[id].player.y - 35);
     }
+}
+
+function fixRotation(rotation) {
+    return Math.round(rotation * 10000) / 10000
 }
 
 function bulletHitHandler(player, bullet) {
@@ -139,30 +170,50 @@ function setCollisions() {
 }
 
 function characterController() {
+    let gamePlayer = players[socket.id];
+    let player = gamePlayer.player;
     if (game.input.keyboard.isDown(Phaser.Keyboard.A) || keyboard.left.isDown) {
-        socket.emit("player_move", "A");
+        changePlayerPosition(player, "x", -2);
+        notifyPlayerMoved(gamePlayer, "A");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.D) || keyboard.right.isDown) {
-        socket.emit("player_move", "D");
+        changePlayerPosition(player, "x", 2);
+        notifyPlayerMoved(gamePlayer, "D");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.W) || keyboard.up.isDown) {
-        socket.emit("player_move", "W");
+        changePlayerPosition(player, "y", -2);
+        notifyPlayerMoved(gamePlayer, "W");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.S) || keyboard.down.isDown) {
-        socket.emit("player_move", "S");
+        changePlayerPosition(player, "y", 2);
+        notifyPlayerMoved(gamePlayer, "S");
     }
+    checkBounds(player)
+}
+
+function changePlayerPosition(player, field, delta) {
+    player[field] += delta;
+    checkBounds(player);
+}
+
+function checkBounds(obj) {
+    if (obj.x < MAP_LOW_BOUND) obj.x = MAP_LOW_BOUND;
+    if (obj.y < MAP_LOW_BOUND) obj.y = MAP_LOW_BOUND;
+    if (obj.x > MAP_HIGH_BOUND) obj.y = MAP_HIGH_BOUND;
+    if (obj.y > MAP_HIGH_BOUND) obj.y = MAP_HIGH_BOUND;
 }
 
 function render() {
     game.debug.cameraInfo(game.camera, 32, 32);
 }
 
-function addPlayer(playerId, x, y, name) {
-    let text = game.add.text(0, 0, name, {font: '14px Arial', fill: '#ffffff'});
+function addPlayer(playerObj) {
+    let text = game.add.text(0, 0, playerObj.name, {font: '14px Arial', fill: '#ffffff'});
     let weapon = game.add.weapon(30, 'bullet');
-    let player = game.add.sprite(x, y, 'survivor_feet_walk');
+    let player = game.add.sprite(playerObj.x, playerObj.y, 'survivor_feet_walk');
     player.anchor.setTo(0.5, 0.5);
     player.scale.setTo(0.25, 0.25);
+    player.rotation = playerObj.rotation;
 
     player.animations.add('walk');
     player.animations.play('walk', 15, true);
@@ -177,7 +228,7 @@ function addPlayer(playerId, x, y, name) {
     game.physics.arcade.enable(player);
     player.smoothed = false;
     player.body.collideWorldBounds = true;
-    player.id = playerId;
+    player.id = playerObj.id;
 
     text.anchor.set(0.5);
 
@@ -186,5 +237,12 @@ function addPlayer(playerId, x, y, name) {
     weapon.fireRate = 100;
     weapon.trackSprite(player, 25, 14, true);
 
-    players[playerId] = { player, weapon, text };
+    players[playerObj.id] = { player, weapon, text };
+
+    //temporary added for debug purposes
+    if (playerObj.id === socket.id) {
+        let debugText = game.add.text(0, 0, playerObj.name, {font: '14px Arial', fill: "#ffffff"});
+        debugText.anchor.set(0.5);
+        players[playerObj.id].debugText = debugText
+    }
 }

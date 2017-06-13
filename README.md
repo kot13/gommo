@@ -1,4 +1,4 @@
-# MMO about rabbits
+# MMORPG just for fun
 
 [ ![Codeship Status for kot13/gommo](https://app.codeship.com/projects/67bf45f0-2b34-0135-7e95-4afd89638027/status?branch=master)](https://app.codeship.com/projects/224028)
 
@@ -11,7 +11,13 @@ Now:
 ```
 $ gvt restore
 $ go build
-$ ./gommo
+$ ./gommo -c config-local.toml
+```
+-c - flag for set path to config file. Default path - ./config.toml
+
+Type in browser:
+```
+localhost:8080
 ```
 
 ## Embedded build
@@ -24,10 +30,10 @@ Now:
 ```
 $ rice embed-go
 $ go build
-$ ./gommo
+$ ./gommo -c config-local.toml
 ```
 
 Or:
 ```
-$ rice embed-go && go build && ./gommo
+$ rice embed-go && go build && ./gommo -c config-local.toml
 ```
