@@ -11,6 +11,7 @@ var cfg Cfg
 type Cfg struct {
 	Logger LoggerConfig   `toml:"logger"`
 	App    AppConfig      `toml:"app"`
+	Room RoomConfig `toml:"room"`
 }
 
 type LoggerConfig struct {
@@ -20,6 +21,11 @@ type LoggerConfig struct {
 
 type AppConfig struct {
 	AppPort string `toml:"app_port"`
+}
+
+type RoomConfig struct {
+	CommandStalePeriodMs int `toml:"command_stale_period_ms"`
+	RoomTickerPeriodMs int `toml:"room_ticker_period_ms"`
 }
 
 func init() {

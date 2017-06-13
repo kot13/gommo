@@ -66,14 +66,28 @@ function create() {
 
     socket.on('world_update', function(data) {
         data = JSON.parse(data);
-        for (let playerId in data) {
+        let dataPlayers = data.players;
+        for (let playerId in dataPlayers) {
             if (playerId in players) {
-                players[playerId].player.visible = data[playerId].isAlive;
-                players[playerId].text.visible = data[playerId].isAlive;
+                players[playerId].player.visible = dataPlayers[playerId].isAlive;
+                players[playerId].text.visible = dataPlayers[playerId].isAlive;
+                if (players[playerId].debugText !== undefined) {
+                    players[playerId].debugText.visible = dataPlayers[playerId].isAlive;
+                }
 
-                if (data[playerId].isAlive) {
-                    updatePlayerRotation(players[playerId], data[playerId]);
-                    updatePlayerPosition(players[playerId], data[playerId]);
+                if (dataPlayers[playerId].isAlive) {
+                    if (playerId === socket.id) {
+                        let lastCommand = undefined;
+                        if (data.commands !== undefined && data.commands !== null && data.commands.length > 0) {
+                            lastCommand = data.commands[data.commands.length-1];
+                        }
+
+                        checkPredictions(players[playerId], dataPlayers[playerId], lastCommand);
+                    } else {
+                        updatePlayerRotation(players[playerId], dataPlayers[playerId]);
+                        updatePlayerPosition(players[playerId], dataPlayers[playerId]);
+                    }
+
                 } else {
                     if (playerId === socket.id && live) {
                         live = false;
@@ -83,8 +97,8 @@ function create() {
                     }
                 }
             } else {
-                if (data[playerId].isAlive) {
-                    addPlayer(data[playerId]);
+                if (dataPlayers[playerId].isAlive) {
+                    addPlayer(dataPlayers[playerId]);
 
                     if (playerId === socket.id) {
                         game.camera.follow(players[socket.id].player);
@@ -95,55 +109,11 @@ function create() {
         }
 
         for (let playerId in players) {
-            if (!(playerId in data)) {
+            if (!(playerId in dataPlayers)) {
                 updateKilledPlayer(playerId)
             }
         }
     });
-}
-
-function updatePlayerRotation(gamePlayer, dataPlayer) {
-    if (gamePlayer.rotationTween !== undefined) {
-        gamePlayer.rotationTween.stop();
-    }
-
-    let player = gamePlayer.player;
-    let delta = getShortestAngle(Phaser.Math.radToDeg(dataPlayer.rotation), player.angle);
-    if (Math.abs(delta) <= 5) {
-        player.rotation = Number(dataPlayer.rotation)
-    } else {
-        let degrees = player.angle + delta;
-        console.log(delta);
-        gamePlayer.rotationTween = game.add.tween(player).to({angle: degrees}, Math.abs(delta), Phaser.Easing.Linear.None);
-        gamePlayer.rotationTween.start()
-    }
-}
-
-function getShortestAngle(angle1, angle2) {
-    let difference = angle2 - angle1;
-    let times = Math.floor((difference - (-180)) / 360);
-
-    return (difference - (times * 360)) * -1;
-}
-
-function updatePlayerPosition(gamePlayer, dataPlayer) {
-    if (gamePlayer.movementTween !== undefined) {
-        gamePlayer.movementTween.stop();
-    }
-
-    let dataPlayerX = Number(dataPlayer.x);
-    let dataPlayerY = Number(dataPlayer.y);
-    let player = gamePlayer.player;
-    let deltaX = dataPlayerX - player.x;
-    let deltaY = dataPlayerY - player.y;
-    let distance = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
-    if (distance <= 4) {
-        player.x = dataPlayerX;
-        player.y = dataPlayerY;
-    } else {
-        gamePlayer.movementTween = game.add.tween(player).to({x: dataPlayerX, y: dataPlayerY}, 5 * distance , Phaser.Easing.Linear.None);
-        gamePlayer.movementTween.start()
-    }
 }
 
 function updateKilledPlayer(playerId) {
@@ -154,16 +124,33 @@ function updateKilledPlayer(playerId) {
 
 function update() {
     if (live === true) {
-        players[socket.id].player.rotation = game.physics.arcade.angleToPointer(players[socket.id].player);
-        socket.emit("player_rotation", String(players[socket.id].player.rotation));
+        let gamePlayer = players[socket.id];
+        let player = gamePlayer.player;
+        let newRotation = fixRotation(game.physics.arcade.angleToPointer(player));
+        if (fixRotation(player.rotation) !== newRotation) {
+            player.rotation = newRotation;
+            notifyPlayerRotated(gamePlayer);
+        }
         setCollisions();
         characterController();
+
+        //for debug mode
+        let debugText = gamePlayer.debugText;
+        if (debugText !== undefined) {
+            debugText.setText("Commands in History = " + gamePlayer.executedCommands.length);
+            debugText.x = Math.floor(player.x);
+            debugText.y = Math.floor(player.y - 55);
+        }
     }
 
     for (let id in players) {
         players[id].text.x = Math.floor(players[id].player.x);
         players[id].text.y = Math.floor(players[id].player.y - 35);
     }
+}
+
+function fixRotation(rotation) {
+    return Math.round(rotation * 10000) / 10000
 }
 
 function bulletHitHandler(player, bullet) {
@@ -183,24 +170,30 @@ function setCollisions() {
 }
 
 function characterController() {
-    let player = players[socket.id].player;
+    let gamePlayer = players[socket.id];
+    let player = gamePlayer.player;
     if (game.input.keyboard.isDown(Phaser.Keyboard.A) || keyboard.left.isDown) {
-        socket.emit("player_move", "A");
-        player.x -= 2
+        changePlayerPosition(player, "x", -2);
+        notifyPlayerMoved(gamePlayer, "A");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.D) || keyboard.right.isDown) {
-        socket.emit("player_move", "D");
-        player.x += 2
+        changePlayerPosition(player, "x", 2);
+        notifyPlayerMoved(gamePlayer, "D");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.W) || keyboard.up.isDown) {
-        socket.emit("player_move", "W");
-        player.y -= 2
+        changePlayerPosition(player, "y", -2);
+        notifyPlayerMoved(gamePlayer, "W");
     }
     if (game.input.keyboard.isDown(Phaser.Keyboard.S) || keyboard.down.isDown) {
-        socket.emit("player_move", "S");
-        player.y += 2
+        changePlayerPosition(player, "y", 2);
+        notifyPlayerMoved(gamePlayer, "S");
     }
     checkBounds(player)
+}
+
+function changePlayerPosition(player, field, delta) {
+    player[field] += delta;
+    checkBounds(player);
 }
 
 function checkBounds(obj) {
@@ -245,4 +238,11 @@ function addPlayer(playerObj) {
     weapon.trackSprite(player, 25, 14, true);
 
     players[playerObj.id] = { player, weapon, text };
+
+    //temporary added for debug purposes
+    if (playerObj.id === socket.id) {
+        let debugText = game.add.text(0, 0, playerObj.name, {font: '14px Arial', fill: "#ffffff"});
+        debugText.anchor.set(0.5);
+        players[playerObj.id].debugText = debugText
+    }
 }
