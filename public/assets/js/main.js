@@ -1,10 +1,9 @@
-const width = window.innerWidth;
-const height = window.innerHeight;
-const mapSize = 2000;
+const WIDTH = 1280;
+const HEIGHT = 740;
 const MAP_LOW_BOUND = 50;
 const MAP_HIGH_BOUND = 1950;
 
-let game = new Phaser.Game(width, height, Phaser.CANVAS, 'area', { preload: preload, create: create, update: update, render: render });
+let game = new Phaser.Game(WIDTH, HEIGHT, Phaser.CANVAS, 'area', { preload: preload, create: create, update: update, render: render });
 let socket;
 let players = {};
 let map;
@@ -14,13 +13,12 @@ let explosion;
 
 function preload() {
     game.load.audio('explosion', '/assets/audio/explosion.mp3');
-    game.load.image('unit', '/assets/images/unit.png');
     game.load.image('bullet', '/assets/images/bullet.png');
-    game.load.image('killer', '/assets/images/killers.png');
-    game.load.image('earth', '/assets/images/scorched_earth.png');
+    game.load.image('tiles', '/assets/sprites/tilesetHouse.png');
 
-    game.load.atlasJSONHash('survivor_feet_walk', '/assets/sprites/survivor_feet_walk.png', '/assets/sprites/survivor_feet_walk.json');
-    game.load.atlasJSONHash('survivor_move', '/assets/sprites/survivor_move.png', '/assets/sprites/survivor_move.json');
+    game.load.tilemap('map', '/assets/sprites/map.json', null, Phaser.Tilemap.TILED_JSON);
+    game.load.atlas('soldier', '/assets/sprites/soldier.png', '/assets/sprites/soldier.json');
+    game.load.atlas('gamepad', '/assets/sprites/gamepad.png', '/assets/sprites/gamepad.json');
 }
 
 function create() {
@@ -31,15 +29,17 @@ function create() {
     game.time.desiredFps = 60;
     game.time.slowMotion = 0;
 
-    game.add.tileSprite(0, 0, mapSize, mapSize, 'earth');
-    game.world.setBounds(0, 0, mapSize, mapSize);
-    game.stage.backgroundColor = "#242424";
-
     // клавиатура
     keyboard = game.input.keyboard.createCursorKeys();
 
     //звуки
     explosion = game.add.audio('explosion');
+
+    //карта
+    initTileMap();
+
+    // геймпад
+    initVirtualGamepad();
 
     //получаем имя игрока
     let savedName = window.localStorage.getItem("player_name");
@@ -91,7 +91,7 @@ function create() {
                 } else {
                     if (playerId === socket.id && live) {
                         live = false;
-                        let text = game.add.text(width / 2, height / 2, "You lose!", {font: "32px Arial", fill: "#ffffff", align: "center"});
+                        let text = game.add.text(WIDTH / 2, HEIGHT / 2, "You lose!", {font: "32px Arial", fill: "#ffffff", align: "center"});
                         text.fixedToCamera = true;
                         text.anchor.setTo(.5, .5);
                     }
@@ -131,6 +131,7 @@ function update() {
             player.rotation = newRotation;
             notifyPlayerRotated(gamePlayer);
         }
+
         setCollisions();
         characterController();
 
@@ -188,7 +189,9 @@ function characterController() {
         changePlayerPosition(player, "y", 2);
         notifyPlayerMoved(gamePlayer, "S");
     }
-    checkBounds(player)
+
+    checkBounds(player);
+    checkMove(player);
 }
 
 function changePlayerPosition(player, field, delta) {
@@ -196,34 +199,68 @@ function changePlayerPosition(player, field, delta) {
     checkBounds(player);
 }
 
-function checkBounds(obj) {
-    if (obj.x < MAP_LOW_BOUND) obj.x = MAP_LOW_BOUND;
-    if (obj.y < MAP_LOW_BOUND) obj.y = MAP_LOW_BOUND;
-    if (obj.x > MAP_HIGH_BOUND) obj.y = MAP_HIGH_BOUND;
-    if (obj.y > MAP_HIGH_BOUND) obj.y = MAP_HIGH_BOUND;
+function checkBounds(player) {
+    if (player.x < MAP_LOW_BOUND) player.x = MAP_LOW_BOUND;
+    if (player.y < MAP_LOW_BOUND) player.y = MAP_LOW_BOUND;
+    if (player.x > MAP_HIGH_BOUND) player.y = MAP_HIGH_BOUND;
+    if (player.y > MAP_HIGH_BOUND) player.y = MAP_HIGH_BOUND;
+}
+
+function checkMove(player) {
+    if(Math.abs(player.body.velocity.x) > 0 || Math.abs(player.body.velocity.y) > 0) {
+        player.play('move');
+    } else {
+        player.play('idle');
+    }
 }
 
 function render() {
     game.debug.cameraInfo(game.camera, 32, 32);
 }
 
+function initVirtualGamepad() {
+    let gamepad = game.plugins.add(Phaser.Plugin.VirtualGamepad)
+    this.joystick = gamepad.addJoystick(90, game.height - 90, 0.75, 'gamepad');
+    gamepad.addButton(game.width - 90, game.height - 90, 0.75, 'gamepad');
+}
+
+function initTileMap() {
+    let map = game.add.tilemap('map');
+    this.map = map;
+
+    map.addTilesetImage('tilesetHouse', 'tiles');
+    map.createLayer('Base');
+
+    let collisionLayer = map.createLayer('Collision');
+    this.collisionLayer = collisionLayer;
+
+    collisionLayer.visible = false;
+
+    map.setCollisionByExclusion([], true, this.collisionLayer);
+
+    collisionLayer.resizeWorld();
+
+    map.createLayer('Foreground');
+}
+
 function addPlayer(playerObj) {
     let text = game.add.text(0, 0, playerObj.name, {font: '14px Arial', fill: '#ffffff'});
     let weapon = game.add.weapon(30, 'bullet');
-    let player = game.add.sprite(playerObj.x, playerObj.y, 'survivor_feet_walk');
+    let player = game.add.sprite(playerObj.x, playerObj.y, 'soldier');
     player.anchor.setTo(0.5, 0.5);
     player.scale.setTo(0.25, 0.25);
+    player.animations.add('idle', [0 ,1 ,2 ,3 ,4 ,5 ,6 ,7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], 30, true);
+    player.animations.add('move', [20 ,21 ,22 ,23 ,24 ,25 ,26 ,27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38], 40, true);
+    player.play('move');
+
     player.rotation = playerObj.rotation;
 
-    player.animations.add('walk');
-    player.animations.play('walk', 15, true);
-
-    let body = game.make.sprite(0, 0, 'survivor_move');
-    body.anchor.setTo(0.5, 0.5);
-    body.animations.add('walk');
-    body.animations.play('walk', 15, true);
-
-    player.addChild(body);
+    // let body = game.make.sprite(0, 0, 'survivor_move');
+    // body.anchor.setTo(0.5, 0.5);
+    // body.animations.add('walk');
+    // body.animations.play('walk', 15, true);
+    //
+    // player.addChild(body);
 
     game.physics.arcade.enable(player);
     player.smoothed = false;

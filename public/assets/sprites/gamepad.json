@@ -1,0 +1,100 @@
+{
+  "frames": [
+    {
+      "filename": "lineDark02.png",
+      "frame": {
+        "x": 1,
+        "y": 1,
+        "w": 160,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 160,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 160,
+        "h": 160
+      }
+    },
+    {
+      "filename": "shadedDark01.png",
+      "frame": {
+        "x": 163,
+        "y": 1,
+        "w": 96,
+        "h": 100
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 100
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 100
+      }
+    },
+    {
+      "filename": "shadedDark07.png",
+      "frame": {
+        "x": 1,
+        "y": 163,
+        "w": 160,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 160,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 160,
+        "h": 160
+      }
+    },
+    {
+      "filename": "shadedDark11.png",
+      "frame": {
+        "x": 163,
+        "y": 163,
+        "w": 160,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 160,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 160,
+        "h": 160
+      }
+    }
+  ],
+  "meta": {
+    "app": "http://www.codeandweb.com/texturepacker",
+    "version": "1.0",
+    "image": "atlas.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 324,
+      "h": 324
+    },
+    "scale": "1",
+    "smartupdate": "$TexturePacker:SmartUpdate:cd2071f90dffc56f5a07aba5a0c04e8f:5fe6636d0003103a3d03095db8de3d08:cbce6b53f0f49e0bf15173c25c41f876$"
+  }
+}
